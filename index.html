@@ -281,6 +281,25 @@
         .monitor-bg-closed { background-color: #e8e6e3; color: #a99a8a; } /* 停診的淡色 */
         .monitor-bg-default { background-color: #FFFFFF; } /* 預設白色 */
 
+        /* --- 變更: 新增日曆 "色塊" 樣式 --- */
+        .day-clinic-blocks-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 4px; /* 與日期數字間隔 */
+        }
+        .day-clinic-block {
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem; /* 12px */
+            font-weight: 600;
+            line-height: 1; /* 確保文字垂直置中 */
+        }
+
 
         /* 進度條 */
         .progress-bar-inner { background-color: #3f7585; }
@@ -450,7 +469,7 @@
 
     <script>
         // *** 變更: 已更新為您最新的部署網址 ***
-        const appsScriptUrl = 'https://script.google.com/macros/s/AKfycbzcaF7zkMYTEWiSA4RS7PfIg0a_ByNgfUrV0YxPH17op5kpMap_ZvMUqVA3lr0zgOUO/exec';
+        const appsScriptUrl = 'https://script.google.com/macros/s/AKfycbyUOdSRWvzFRRmxju71sZ0KkN8IryuqmXSeo-Dv-ExFxn4CLAzFbn68pGc4w94_Iw/exec';
         
         let allCasesData = [], allEventsData = [], allMembersData = [], allProjectsData = [], allMonitoringData = []; // NEW: allMonitoringData
         let currentView = 'welcome';
@@ -1724,47 +1743,57 @@
                     return item['日期'].startsWith(isoDate);
                 });
 
-                let bgColorClass = 'monitor-bg-default'; // 預設
-                let clinicCount = itemsForThisDay.length;
-                let daySummaryHtml = '';
+                // --- 變更: 重寫日曆格產生邏輯 ---
+                
+                const dayCellBgColor = 'monitor-bg-default'; // 每天的格子背景一律用預設 (白色)
+                let daySummaryHtml = ''; // 準備放置 "色塊"
 
-                if (clinicCount > 0) {
-                    let maxRegistered = 0;
-                    let isClosed = false;
+                if (itemsForThisDay.length > 0) {
+                    
+                    // 排序讓色塊顯示順序固定
+                    itemsForThisDay.sort((a, b) => (a['門診'] || '').localeCompare(b['門診']));
 
-                    itemsForThisDay.forEach(item => {
-                        if (item['是否停診'] === '是') {
-                            isClosed = true;
-                        }
+                    const blocks = itemsForThisDay.map(item => {
+                        const isClosed = item['是否停診'] === '是';
                         const registered = parseInt(item['已掛號人數'] || 0, 10);
-                        if (registered > maxRegistered) {
-                            maxRegistered = registered;
-                        }
-                    });
+                        
+                        let blockBgColor = 'monitor-bg-default';
+                        let blockChar = '?'; // 預設字元
 
-                    if (isClosed) {
-                        bgColorClass = 'monitor-bg-closed';
-                        daySummaryHtml = `<span class="day-clinic-count">停診</span>`;
-                    } else if (maxRegistered > 10) {
-                        bgColorClass = 'monitor-bg-high';
-                        daySummaryHtml = `<span class="day-clinic-count">${maxRegistered} 人</span>`;
-                    } else if (maxRegistered > 5) {
-                        bgColorClass = 'monitor-bg-medium';
-                        daySummaryHtml = `<span class="day-clinic-count">${maxRegistered} 人</span>`;
-                    } else {
-                        bgColorClass = 'monitor-bg-low';
-                        daySummaryHtml = `<span class="day-clinic-count">${maxRegistered} 人</span>`;
-                    }
+                        // 決定色塊上的 "字"
+                        if (item['門診']) {
+                            if (item['門診'].includes('藥')) blockChar = '藥';
+                            else if (item['門診'].includes('酒')) blockChar = '酒';
+                            else blockChar = item['門診'].substring(0, 1); // 備用
+                        }
+
+                        // 決定色塊 "顏色"
+                        if (isClosed) {
+                            blockBgColor = 'monitor-bg-closed';
+                            blockChar = '停'; // 停診
+                        } else if (registered > 10) {
+                            blockBgColor = 'monitor-bg-high'; // 胭脂紅
+                        } else if (registered > 5) {
+                            blockBgColor = 'monitor-bg-medium'; // 橘黃
+                        } else {
+                            blockBgColor = 'monitor-bg-low'; // 草綠
+                        }
+                        
+                        return `<div class="day-clinic-block ${blockBgColor}">${blockChar}</div>`;
+                    }).join('');
+                    
+                    daySummaryHtml = `<div class="day-clinic-blocks-container">${blocks}</div>`;
                 }
                 
                 listContainer.innerHTML += `
                     <div class="calendar-day">
-                        <div class="day-content ${bgColorClass}" onclick="window.showMonitoringDetailsForDay('${isoDate}')">
+                        <div class="day-content ${dayCellBgColor}" onclick="window.showMonitoringDetailsForDay('${isoDate}')">
                             <span class="day-number">${day}</span>
                             ${daySummaryHtml}
                         </div>
                     </div>
                 `;
+                // --- 變更結束 ---
             }
         }
 
@@ -2110,7 +2139,9 @@
 
             // NEW: 打開 "新增門診" 彈窗 (清空表單)
             openAddMonitoringModal: function() {
-                document.getElementById('addProjectForm').reset();
+                // --- 🐞 BUG 修正 ---
+                // 原本是 'addProjectForm'，導致表單沒有被清空
+                document.getElementById('addMonitoringForm').reset(); 
                 document.getElementById('editMonitoringId').value = '';
                 document.getElementById('monitoringModalTitle').textContent = '新增門診項目';
                 
