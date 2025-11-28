@@ -221,11 +221,12 @@
         .case-bg-medium { background-color: #f5f2ef; } /* 沙色的淡色 */
          .case-bg-default { background-color: #FFFFFF; }
 
-        /* 門診監測邊框 */
-        .monitor-border-high { border-left: 4px solid #D05A6E; }
-        .monitor-border-medium { border-left: 4px solid #FC9F4D; } /* 變更: 使用者指定橘黃色 */
-        .monitor-border-low { border-left: 4px solid #86C166; } /* 變更: 依照使用者要求更新色碼 */
-        .monitor-border-closed { border-left: 4px solid #a99a8a; }
+        /* --- 變更: 門診監測邊框 (Welcome 頁面使用) --- */
+        .monitor-border-level-1 { border-left: 4px solid #22c55e; } /* Green 0-5 */
+        .monitor-border-level-2 { border-left: 4px solid #eab308; } /* Yellow 6-10 */
+        .monitor-border-level-3 { border-left: 4px solid #f43f5e; } /* Light Red 11-15 */
+        .monitor-border-level-4 { border-left: 4px solid #7f1d1d; } /* Deep Red 16+ */
+        .monitor-border-closed { border-left: 4px solid #9ca3af; } /* Grey */
         .monitor-border-default { border-left: 4px solid #dcdcdc; }
 
         /* --- 變更: 新增日曆樣式 --- */
@@ -262,6 +263,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            background-color: #FFFFFF; /* 日曆格子預設白色 */
         }
         .day-content:hover {
             transform: scale(1.05);
@@ -274,30 +276,35 @@
         .day-clinic-count {
             font-size: 0.75rem;
         }
-        /* 變更: 門診監測 "背景" 顏色 (用於日曆) */
-        .monitor-bg-high { background-color: #f9ebee; color: #D05A6E; } /* 胭脂紅的淡色 */
-        .monitor-bg-medium { background-color: #fff8f0; color: #FC9F4D; } /* 橘黃的淡色 */
-        .monitor-bg-low { background-color: #f0f8ec; color: #86C166; } /* 草綠的淡色 */
-        .monitor-bg-closed { background-color: #e8e6e3; color: #a99a8a; } /* 停診的淡色 */
-        .monitor-bg-default { background-color: #FFFFFF; } /* 預設白色 */
-
-        /* --- 變更: 新增日曆 "色塊" 樣式 --- */
-        .day-clinic-blocks-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            margin-top: 4px; /* 與日期數字間隔 */
-        }
-        .day-clinic-block {
-            width: 22px;
-            height: 22px;
-            border-radius: 4px;
-            display: flex;
+        
+        /* NEW: 門診小標籤樣式 (依照人數區分顏色) */
+        .badge {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.75rem; /* 12px */
-            font-weight: 600;
-            line-height: 1; /* 確保文字垂直置中 */
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+        /* 綠色 0-5 */
+        .badge-level-1 { background-color: #dcfce7; color: #15803d; } 
+        /* 黃色 6-10 */
+        .badge-level-2 { background-color: #fef9c3; color: #a16207; } 
+        /* 淡紅色 11-15 */
+        .badge-level-3 { background-color: #fee2e2; color: #b91c1c; } 
+        /* 超深紅色 16+ (白字) */
+        .badge-level-4 { background-color: #7f1d1d; color: #ffffff; } 
+        /* 停診 (灰色) */
+        .badge-closed { background-color: #e5e7eb; color: #374151; } 
+
+        .badge-container {
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-end;
         }
 
 
@@ -395,7 +402,28 @@
     <div id="eventModal" class="modal"><div class="modal-content"><div class="flex justify-between items-center border-b pb-2 mb-4"><h3 id="modalTitle" class="text-2xl font-bold">事件詳情</h3><button onclick="window.closeModal('eventModal')" class="modal-close-btn text-3xl font-bold">&times;</button></div><div class="space-y-2"><p><strong>事件名稱:</strong> <span id="modalEventName"></span></p><p><strong>日期:</strong> <span id="modalDate"></span></p><p><strong>開始時間:</strong> <span id="modalStartTime"></span></p><p><strong>結束時間:</strong> <span id="modalEndTime"></span></p><p><strong>主辦單位:</strong> <span id="modalOrganizer"></span></p><p><strong>聯絡人:</strong> <span id="modalContact"></span></p></div></div></div>
     <div id="caseModal" class="modal"><div class="modal-content"><div class="flex justify-between items-center border-b pb-2 mb-4"><h3 id="caseModalTitle" class="text-2xl font-bold">個案詳情</h3><button onclick="window.closeModal('caseModal')" class="modal-close-btn text-3xl font-bold">&times;</button></div><div class="space-y-2"><p><strong>個案姓名:</strong> <span id="caseModalCaseName"></span></p><p><strong>病歷號:</strong> <span id="caseModalRecordNumber"></span></p><p><strong>個管師 / 主治醫師:</strong> <span id="caseModalManagerDoctor"></span></p><hr class="my-3"><p><strong>已使用總額:</strong> <span id="caseModalTotalUsed"></span></p><p><strong>總額餘額:</strong> <span id="caseModalTotalRemaining"></span></p><hr class="my-3"><p><strong>已使用藥費:</strong> <span id="caseModalMedicationUsed"></span></p><p><strong>藥費餘額:</strong> <span id="caseModalMedicationRemaining"></span></p><p><strong>藥物種類:</strong> <span id="caseModalMedicationType"></span></p><p><strong>可再開幾粒:</strong> <span id="caseModalPillsRemaining"></span></p></div></div></div>
     <div id="addProjectModal" class="modal"><div class="modal-content modal-content-lg p-8"><div class="flex justify-between items-center border-b pb-4 mb-6"><h3 id="projectModalTitle" class="text-2xl font-bold">新增項目</h3><button onclick="window.closeModal('addProjectModal')" class="modal-close-btn text-3xl font-bold">&times;</button></div><form id="addProjectForm" class="space-y-6"><input type="hidden" id="editProjectId"><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div><label for="projectName" class="block text-sm font-medium">項目名稱 (必填)</label><input type="text" id="projectName" required class="mt-1 block w-full input"></div><div><label for="projectGroup" class="block text-sm font-medium">所屬小組 (必填)</label><select id="projectGroup" required class="mt-1 block w-full input"><option>院內</option><option>酒癮計畫</option><option>監所計畫</option><option>藥癮整合計畫1</option><option>藥癮整合計畫2</option><option>美沙冬計畫</option></select></div><div><label for="projectType" class="block text-sm font-medium">類型 (必填)</label><select id="projectType" required class="mt-1 block w-full input"><option>任務</option><option>專案</option><option>研究</option><option>比賽</option></select></div></div><div><label for="projectDescription" class="block text-sm font-medium">項目備註說明</label><textarea id="projectDescription" rows="3" class="mt-1 block w-full input" placeholder="請輸入此項目的詳細說明或備註..."></textarea></div><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label class="block text-sm font-medium">主要負責人 (可複選)</label><div id="projectLeadSelection" class="mt-1 h-32 overflow-y-auto p-2 border rounded-md bg-gray-50 space-y-2"></div></div><div><div class="flex justify-between items-center"><label class="block text-sm font-medium">協同人員 (可複選)</label><div class="flex items-center"><input type="checkbox" id="selectAllTeam" class="h-4 w-4 rounded"><label for="selectAllTeam" class="ml-2 block text-sm">全選</label></div></div><div id="projectTeamSelection" class="mt-1 h-32 overflow-y-auto p-2 border rounded-md bg-gray-50 space-y-2"></div></div></div><div><label class="block text-sm font-medium">檢查點 (Checklist)</label><div class="flex items-center gap-2 mt-1"><input type="text" id="newChecklistItemInput" placeholder="新增檢查點..." class="flex-1 block w-full input"><button type="button" id="addChecklistItemBtn" class="btn btn-special px-4 py-2">新增</button></div><div id="checklistItemContainer" class="mt-2 space-y-2 h-24 overflow-y-auto p-2 border rounded-md"></div></div><div class="grid grid-cols-1 md:grid-cols-4 gap-6"><div><label for="projectStatus" class="block text-sm font-medium">狀態 (必填)</label><select id="projectStatus" required class="mt-1 block w-full input"><option>規劃中</option><option>進行中</option><option>已完成</option><option>暫停</option><option>逾期</option></select></div><div><label for="projectPriority" class="block text-sm font-medium">優先級</label><select id="projectPriority" class="mt-1 block w-full input"><option>低</option><option>中</option><option>高</option></select></div><div><label for="startDate" class="block text-sm font-medium">開始日期 (必填)</label><input type="date" id="startDate" required class="mt-1 block w-full input"></div><div><label for="endDate" class="block text-sm font-medium">截止日期 (必填)</label><input type="date" id="endDate" required class="mt-1 block w-full input"></div></div><div class="flex justify-end gap-4 pt-4 border-t"><button type="button" onclick="window.closeModal('addProjectModal')" class="btn btn-secondary">取消</button><button type="submit" class="btn btn-primary">儲存</button></div></form></div></div>
-    <div id="projectDetailModal" class="modal"><div class="modal-content modal-content-lg p-8"><div class="flex justify-between items-center border-b pb-4 mb-6"><h3 id="detailProjectName" class="text-2xl font-bold">專案詳情</h3><button onclick="window.closeModal('projectDetailModal')" class="modal-close-btn text-3xl font-bold">&times;</button></div><div id="projectDetailContent" class="space-y-4"></div><div id="detailProjectChecklist" class="mt-6 space-y-2"></div><div class="flex justify-end gap-4 pt-6 border-t mt-6"><button id="deleteProjectBtn" class="btn btn-danger" style="display: none;">刪除</button><button id="editProjectBtn" class="btn btn-warning" style="display: none;">編輯</button></div></div></div>
+    
+    <!-- 變更: 在專案詳情彈窗中加入進度條容器 (detailProjectProgress) -->
+    <div id="projectDetailModal" class="modal">
+        <div class="modal-content modal-content-lg p-8">
+            <div class="flex justify-between items-center border-b pb-4 mb-6">
+                <h3 id="detailProjectName" class="text-2xl font-bold">專案詳情</h3>
+                <button onclick="window.closeModal('projectDetailModal')" class="modal-close-btn text-3xl font-bold">&times;</button>
+            </div>
+            
+            <!-- NEW: 進度條顯示區域 -->
+            <div id="detailProjectProgress" class="mb-6"></div>
+
+            <div id="projectDetailContent" class="space-y-4"></div>
+            <div id="detailProjectChecklist" class="mt-6 space-y-2"></div>
+            
+            <div class="flex justify-end gap-4 pt-6 border-t mt-6">
+                <button id="deleteProjectBtn" class="btn btn-danger" style="display: none;">刪除</button>
+                <button id="editProjectBtn" class="btn btn-warning" style="display: none;">編輯</button>
+            </div>
+        </div>
+    </div>
+    
     <div id="deleteConfirmModal" class="modal"><div class="modal-content p-8 text-center"><h3 class="text-xl font-bold mb-4">確認刪除</h3><p class="text-gray-600 mb-6">您確定要刪除此項目嗎？<br>此操作無法復原。</p><div class="flex justify-center gap-4"><button onclick="window.closeModal('deleteConfirmModal')" class="btn btn-secondary">取消</button><button id="confirmDeleteBtn" class="btn btn-danger">確認刪除</button></div></div></div>
 
     <!-- NEW: Monitoring Modal -->
@@ -412,10 +440,12 @@
                     <label for="monitoringItemName" class="block text-sm font-medium">門診 (必填)</label>
                     <select id="monitoringItemName" required class="mt-1 block w-full input">
                         <option value="">請選擇班別...</option>
-                        <!-- 變更: 移除 (週一/二 下午) 等文字 -->
+                        <!-- 變更: 新增精神科選項 -->
                         <option value="Y798酒癮(樹林)">Y798酒癮(樹林)</option>
                         <option value="Y795藥癮(樹林)">Y795藥癮(樹林)</option>
                         <option value="779W酒癮(總院)">779W酒癮(總院)</option>
+                        <option value="7790精神科(總院)">7790精神科(總院)</option>
+                        <option value="7791精神科(樹林)">7791精神科(樹林)</option>
                     </select>
                 </div>
                 
@@ -469,7 +499,7 @@
 
     <script>
         // *** 變更: 已更新為您最新的部署網址 ***
-        const appsScriptUrl = 'https://script.google.com/macros/s/AKfycbyUOdSRWvzFRRmxju71sZ0KkN8IryuqmXSeo-Dv-ExFxn4CLAzFbn68pGc4w94_Iw/exec';
+        const appsScriptUrl = 'https://script.google.com/macros/s/AKfycbznwwxuHJpuS0sMRyQqrQaNqDtwrMacZ_KSsUa0_BNXOlTIdrAb6P3PtDJDRwSswaNh/exec';
         
         let allCasesData = [], allEventsData = [], allMembersData = [], allProjectsData = [], allMonitoringData = []; // NEW: allMonitoringData
         let currentView = 'welcome';
@@ -588,9 +618,11 @@
                     contentHtml = `<p class="text-lg font-semibold text-gray-500">停診</p>`;
                 } else {
                     const registered = parseInt(item['已掛號人數'] || 0, 10);
-                    if (registered > 10) cardBorderColor = 'monitor-border-high';
-                    else if (registered > 5) cardBorderColor = 'monitor-border-medium';
-                    else cardBorderColor = 'monitor-border-low';
+                    // 變更: 依照新的人數規則更新 Welcome 卡片的邊框顏色
+                    if (registered >= 16) cardBorderColor = 'monitor-border-level-4';
+                    else if (registered >= 11) cardBorderColor = 'monitor-border-level-3';
+                    else if (registered >= 6) cardBorderColor = 'monitor-border-level-2';
+                    else cardBorderColor = 'monitor-border-level-1';
                     
                     contentHtml = `<p class="text-2xl font-bold text-gray-800">${registered}</p>
                                    <p class="text-sm text-gray-500">已掛號</p>`;
@@ -795,9 +827,7 @@
                     <!-- 統計數字 -->
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
                         <div class="bg-gray-100 p-4 rounded-xl shadow"><p class="text-sm text-gray-500">總個案數</p><p id="totalCases" class="text-2xl font-bold">0</p></div>
-                        <div class="bg-gray-100 p-4 rounded-xl shadow"><p class="text-sm text-gray-500">總已使用金額</p><p id="totalUsed" class="text-2xl font-bold">NT$0</p></div>
-                        <div class="bg-gray-100 p-4 rounded-xl shadow"><p class="text-sm text-gray-500">總剩餘金額</p><p id="totalRemaining" class="text-2xl font-bold">NT$0</p></div>
-                        <div class="bg-gray-100 p-4 rounded-xl shadow"><p class="text-sm text-gray-500">平均使用率</p><p id="avgUtilization" class="text-2xl font-bold">0%</p></div>
+                        <!-- 變更: 移除其他統計方塊 (總已使用金額、總剩餘金額、平均使用率) -->
                     </div>
                     <!-- 過濾器與搜尋 -->
                     <div class="flex flex-col md:flex-row gap-2 mb-4">
@@ -1088,7 +1118,7 @@
                         '優先級': document.getElementById('projectPriority').value,
                         '開始日期': document.getElementById('startDate').value,
                         '截止日期': document.getElementById('endDate').value,
-                        '檢查點': JSON.stringify(checklists) // 儲存為 JSON 字串
+                        '檢查點': JSON.stringify(checklistItems) // FIX: checklists -> checklistItems
                     };
                     
                     const payload = {
@@ -1493,28 +1523,29 @@
 
             // 1. 更新統計資料
             let totalCases = allCasesData.length;
+            // 變更: 雖然不顯示，但為了保持程式邏輯完整，保留計算變數宣告，但不執行 DOM 更新
             let totalUsed = 0;
             let totalRemaining = 0;
-            let totalBudget = 0; // 用於計算平均使用率
+            let totalBudget = 0; 
 
             allCasesData.forEach(item => {
                 const used = parseFloat(item['已使用總額'] || 0);
                 const remaining = parseFloat(item['總額度餘額'] || 0);
                 totalUsed += used;
                 totalRemaining += remaining;
-                // 假設 總額度 = 已使用 + 餘額
                 const budget = used + remaining; 
                 if (budget > 0) {
                     totalBudget += budget;
                 }
             });
 
-            const avgUtilization = (totalBudget > 0) ? (totalUsed / totalBudget) * 100 : 0;
+            // const avgUtilization = (totalBudget > 0) ? (totalUsed / totalBudget) * 100 : 0;
             
             document.getElementById('totalCases').textContent = totalCases;
-            document.getElementById('totalUsed').textContent = formatCurrency(totalUsed);
-            document.getElementById('totalRemaining').textContent = formatCurrency(totalRemaining);
-            document.getElementById('avgUtilization').textContent = `${avgUtilization.toFixed(1)}%`;
+            // 變更: 移除對已刪除元素的更新，避免錯誤
+            // document.getElementById('totalUsed').textContent = formatCurrency(totalUsed);
+            // document.getElementById('totalRemaining').textContent = formatCurrency(totalRemaining);
+            // document.getElementById('avgUtilization').textContent = `${avgUtilization.toFixed(1)}%`;
 
             // 2. 綁定搜尋和過濾事件 (如果尚未綁定)
             const searchInput = document.getElementById('searchInput');
@@ -1553,20 +1584,36 @@
                 if (totalUsed > 35000) bgColor = 'case-bg-high';
                 else if (medicationUsed > 15000) bgColor = 'case-bg-medium';
                 
-                // 狀態燈號
-                const status = item['狀態'] || '';
-                let statusColor = 'case-status-default';
-                if (status === 'V') statusColor = 'case-status-v';
-                else if (status === 'N') statusColor = 'case-status-n';
-                else if (status === 'A') statusColor = 'case-status-a';
+                // 狀態燈號邏輯 (增強版)
+                // 優先抓取 '狀態' 欄位，如果沒有則抓取 '註記' 或 '註記狀態' 欄位
+                // 請確保 Google Sheet K欄的第一列標題是 "狀態" 或 "註記" 或 "註記狀態"
+                const rawStatus = item['狀態'] || item['註記'] || item['註記狀態'];
+                const kColumnValue = rawStatus ? rawStatus.toString().trim() : '';
+                
+                let statusColor = 'case-status-default'; // 預設灰色
+                let statusText = '?'; // 預設顯示問號
+
+                // 判斷邏輯: V 或 v 顯示打勾，其他顯示原文字
+                if (kColumnValue.toUpperCase() === 'V') {
+                    statusColor = 'case-status-v'; // 綠色
+                    statusText = '✓'; // 顯示打勾
+                } else if (kColumnValue) {
+                    // 如果 K 欄有其他文字 (如 A, N)，直接顯示該文字
+                    statusText = kColumnValue;
+                }
                 
                 const caseJson = JSON.stringify(item).replace(/'/g, '&#39;');
+                
+                // FIX: 強制將 '可再開幾粒' 轉為整數
+                const pills = parseInt(item['可再開幾粒']);
+                const displayPills = isNaN(pills) ? (item['可再開幾粒'] || 'N/A') : pills;
 
                 listContainer.innerHTML += `
                     <div class="${bgColor} rounded-xl shadow-lg p-6 flex flex-col gap-4 cursor-pointer border border-gray-200 hover:shadow-xl transition-shadow" onclick='window.showCaseDetails(${caseJson})'>
                         <div class="flex justify-between items-start gap-2">
                             <h3 class="text-xl font-bold text-link-title">${item['個案姓名'] || '未命名'}</h3> <!-- 變更: 使用 class -->
-                            <span class="text-xs font-semibold px-2 py-1 rounded ${statusColor}">${status || '?'}</span>
+                            <!-- 顯示狀態標籤 -->
+                            <span class="text-xs font-bold px-2 py-1 rounded ${statusColor} min-w-[1.5rem] h-6 flex items-center justify-center">${statusText}</span>
                         </div>
                         <p class="text-sm text-gray-500">${item['個管'] || 'N/A'} / ${item['主治醫師'] || 'N/A'}</p>
                         
@@ -1585,7 +1632,7 @@
                             </div>
                             <div class="flex justify-between">
                                 <span>可再開幾粒:</span>
-                                <span class="font-bold">${item['可再開幾粒'] || 'N/A'}</span>
+                                <span class="font-bold">${displayPills}</span>
                             </div>
                         </div>
                     </div>
@@ -1627,17 +1674,22 @@
             ).join('');
             
             // --- 渲染頁面框架 ---
+            // 變更: 在下拉選單區塊加入 上個月/下個月 按鈕
             pageContainer.innerHTML = `
                 <div id="monitoringFilters" class="flex flex-col md:flex-row gap-4 mb-4">
-                    <!-- 變更: 新增門診篩選按鈕 -->
+                    <!-- 門診篩選按鈕 -->
                     <div class="flex gap-2 flex-wrap">
                         <button data-filter="all" class="monitoring-filter-btn filter-btn filter-btn-active">全部門診</button>
                         <button data-filter="Y798" class="monitoring-filter-btn filter-btn filter-btn-inactive">Y798酒癮(樹林)</button>
                         <button data-filter="Y795" class="monitoring-filter-btn filter-btn filter-btn-inactive">Y795藥癮(樹林)</button>
                         <button data-filter="779W" class="monitoring-filter-btn filter-btn filter-btn-inactive">779W酒癮(總院)</button>
+                        <button data-filter="7790" class="monitoring-filter-btn filter-btn filter-btn-inactive">7790精神科(總院)</button>
+                        <button data-filter="7791" class="monitoring-filter-btn filter-btn filter-btn-inactive">7791精神科(樹林)</button>
                     </div>
-                    <!-- 年/月 篩選 (下拉選單) -->
-                    <div class="flex gap-2 ml-auto">
+                    
+                    <!-- 年/月 篩選 (下拉選單 + 切換按鈕) -->
+                    <div class="flex gap-2 ml-auto items-center">
+                        <button id="prevMonthBtn" class="btn btn-secondary px-3" title="上個月">&lt;</button>
                         <select id="monitoringYearFilterSelect" class="monitoring-filter-select select-filter">
                             <option value="all">所有年份</option>
                             ${yearOptions}
@@ -1646,12 +1698,11 @@
                             <option value="all">所有月份</option>
                             ${monthOptions}
                         </select>
+                        <button id="nextMonthBtn" class="btn btn-secondary px-3" title="下個月">&gt;</button>
                     </div>
                 </div>
                 
-                <!-- 變更: 移除舊的 #monitoringList, 改為日曆 -->
                 <div id="monitoringCalendarHeader" class="calendar-grid mb-2 hidden md:grid">
-                    <!-- 變更: 調整星期順序 -->
                     <div class="calendar-day-header">一</div>
                     <div class="calendar-day-header">二</div>
                     <div class="calendar-day-header">三</div>
@@ -1663,7 +1714,6 @@
                 <div id="monitoringCalendar" class="calendar-grid">
                     <!-- 內容將由 applyMonitoringFilters 填入 -->
                 </div>
-                <!-- 變更: 確保按鈕 ID 唯一 -->
                 <button id="addMonitoringItemBtn" onclick="window.openAddMonitoringModal()" class="fixed bottom-12 right-12 bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-4xl shadow-lg hover:bg-blue-700 transition-all">+</button>
             `;
             
@@ -1682,8 +1732,54 @@
             document.querySelectorAll('.monitoring-filter-select').forEach(select => {
                 select.addEventListener('change', applyMonitoringFilters);
             });
+
+            // 變更: 綁定 上個月/下個月 按鈕事件
+            document.getElementById('prevMonthBtn').addEventListener('click', () => changeMonitoringMonth(-1));
+            document.getElementById('nextMonthBtn').addEventListener('click', () => changeMonitoringMonth(1));
             
             // --- 初始渲染 ---
+            applyMonitoringFilters();
+        }
+
+        /**
+         * 變更: 切換門診監測月份的輔助函式
+         * @param {number} offset - -1 為上個月, 1 為下個月
+         */
+        function changeMonitoringMonth(offset) {
+            const yearSelect = document.getElementById('monitoringYearFilterSelect');
+            const monthSelect = document.getElementById('monitoringMonthFilterSelect');
+            
+            let year = parseInt(yearSelect.value);
+            let month = parseInt(monthSelect.value);
+            
+            // 如果選單是 "all"，則以當前日期為基準
+            if (isNaN(year) || isNaN(month)) {
+                const now = new Date();
+                year = now.getFullYear();
+                month = now.getMonth() + 1;
+            }
+
+            // 計算新的日期
+            // 這裡利用 Date 物件自動處理年份進位/退位 (例如 12月 + 1個月 會變成 明年1月)
+            const newDate = new Date(year, month - 1 + offset, 1);
+            const newYear = newDate.getFullYear();
+            const newMonth = newDate.getMonth() + 1;
+
+            // 檢查年份選項是否存在，若不存在則動態新增 (避免切換到選單沒有的年份而出錯)
+            let yearOption = yearSelect.querySelector(`option[value="${newYear}"]`);
+            if (!yearOption) {
+                yearOption = document.createElement('option');
+                yearOption.value = newYear;
+                yearOption.text = `${newYear} 年`;
+                // 簡單插入到最前面或最後面，視年份大小而定 (這裡簡單做 append，確保功能正常)
+                yearSelect.add(yearOption);
+            }
+            
+            // 更新選單值
+            yearSelect.value = newYear;
+            monthSelect.value = newMonth;
+            
+            // 觸發更新
             applyMonitoringFilters();
         }
 
@@ -1743,57 +1839,42 @@
                     return item['日期'].startsWith(isoDate);
                 });
 
-                // --- 變更: 重寫日曆格產生邏輯 ---
-                
-                const dayCellBgColor = 'monitor-bg-default'; // 每天的格子背景一律用預設 (白色)
-                let daySummaryHtml = ''; // 準備放置 "色塊"
-
-                if (itemsForThisDay.length > 0) {
+                // 產生小標籤 HTML
+                const badgesHtml = itemsForThisDay.map(item => {
+                    const registered = parseInt(item['已掛號人數'] || 0, 10);
+                    let badgeClass = '';
                     
-                    // 排序讓色塊顯示順序固定
-                    itemsForThisDay.sort((a, b) => (a['門診'] || '').localeCompare(b['門診']));
+                    if (item['是否停診'] === '是') {
+                        badgeClass = 'badge-closed';
+                    } else if (registered >= 16) {
+                        badgeClass = 'badge-level-4'; // Deep Red
+                    } else if (registered >= 11) {
+                        badgeClass = 'badge-level-3'; // Light Red
+                    } else if (registered >= 6) {
+                        badgeClass = 'badge-level-2'; // Yellow
+                    } else {
+                        badgeClass = 'badge-level-1'; // Green
+                    }
 
-                    const blocks = itemsForThisDay.map(item => {
-                        const isClosed = item['是否停診'] === '是';
-                        const registered = parseInt(item['已掛號人數'] || 0, 10);
-                        
-                        let blockBgColor = 'monitor-bg-default';
-                        let blockChar = '?'; // 預設字元
-
-                        // 決定色塊上的 "字"
-                        if (item['門診']) {
-                            if (item['門診'].includes('藥')) blockChar = '藥';
-                            else if (item['門診'].includes('酒')) blockChar = '酒';
-                            else blockChar = item['門診'].substring(0, 1); // 備用
-                        }
-
-                        // 決定色塊 "顏色"
-                        if (isClosed) {
-                            blockBgColor = 'monitor-bg-closed';
-                            blockChar = '停'; // 停診
-                        } else if (registered > 10) {
-                            blockBgColor = 'monitor-bg-high'; // 胭脂紅
-                        } else if (registered > 5) {
-                            blockBgColor = 'monitor-bg-medium'; // 橘黃
-                        } else {
-                            blockBgColor = 'monitor-bg-low'; // 草綠
-                        }
-                        
-                        return `<div class="day-clinic-block ${blockBgColor}">${blockChar}</div>`;
-                    }).join('');
+                    let badgeText = '診'; // Default
+                    if (item['是否停診'] === '是') badgeText = '停';
+                    else if (item['門診'].includes('酒')) badgeText = '酒';
+                    else if (item['門診'].includes('藥')) badgeText = '藥';
+                    else if (item['門診'].includes('精神')) badgeText = '精';
                     
-                    daySummaryHtml = `<div class="day-clinic-blocks-container">${blocks}</div>`;
-                }
+                    return `<span class="badge ${badgeClass}">${badgeText}</span>`;
+                }).join('');
                 
                 listContainer.innerHTML += `
                     <div class="calendar-day">
-                        <div class="day-content ${dayCellBgColor}" onclick="window.showMonitoringDetailsForDay('${isoDate}')">
+                        <div class="day-content" onclick="window.showMonitoringDetailsForDay('${isoDate}')">
                             <span class="day-number">${day}</span>
-                            ${daySummaryHtml}
+                            <div class="badge-container">
+                                ${badgesHtml}
+                            </div>
                         </div>
                     </div>
                 `;
-                // --- 變更結束 ---
             }
         }
 
@@ -1900,7 +1981,12 @@
                 document.getElementById('caseModalMedicationUsed').textContent = formatCurrency(caseItem['已使用藥費']);
                 document.getElementById('caseModalMedicationRemaining').textContent = formatCurrency(caseItem['藥費餘額']);
                 document.getElementById('caseModalMedicationType').textContent = caseItem['藥物使用'] || 'N/A';
-                document.getElementById('caseModalPillsRemaining').textContent = caseItem['可再開幾粒'] || 'N/A';
+                
+                // FIX: 強制轉為整數顯示
+                const pills = parseInt(caseItem['可再開幾粒']);
+                const displayPills = isNaN(pills) ? (caseItem['可再開幾粒'] || 'N/A') : pills;
+                document.getElementById('caseModalPillsRemaining').textContent = displayPills;
+                
                 document.getElementById('caseModal').style.display = 'flex';
             },
 
@@ -1929,20 +2015,51 @@
             showProjectDetails: function(projectId) {
                 const project = allProjectsData.find(p => p.ID === projectId); if (!project) return;
                 document.getElementById('detailProjectName').textContent = project['專案名稱'];
-                // 變更: 使用 formatSimpleDate 格式化日期
+                
+                // NEW: 計算並顯示進度條 (在彈窗中)
+                const { status, colorClass, progress, totalTasks, completedTasks } = getCalculatedProjectStatus(project);
+                
+                // 渲染進度條 HTML
+                const progressHtml = `
+                    <div class="flex justify-between items-end mb-1">
+                        <span class="text-sm font-semibold text-gray-700">完成進度</span>
+                        <span class="text-sm font-bold text-gray-700" id="modalProgressText">${Math.round(progress)}% (${completedTasks}/${totalTasks})</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4">
+                        <div id="modalProgressBar" class="bg-blue-600 h-4 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
+                    </div>
+                `;
+                document.getElementById('detailProjectProgress').innerHTML = progressHtml;
+                
                 document.getElementById('projectDetailContent').innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm"><p><strong>類型:</strong> ${project['任務類型']}</p><p><strong>所屬小組:</strong> ${project['所屬小組']}</p><p><strong>狀態:</strong> ${project['狀態']}</p><p><strong>優先級:</strong> ${project['優先級']}</p><p><strong>開始日期:</strong> ${formatSimpleDate(project['開始日期'])}</p><p><strong>截止日期:</strong> ${formatSimpleDate(project['截止日期'])}</p><p class="col-span-2"><strong>主要負責人:</strong> ${project['主要負責']}</p><p class="col-span-2"><strong>協同人員:</strong> ${project['協同負責']}</p><p class="col-span-2"><strong>備註:</strong> ${project['備註'] || '無'}</p></div>`;
                 
                 const checklistContainer = document.getElementById('detailProjectChecklist');
                 checklistContainer.innerHTML = '';
-                // 從本地快取讀取檢查點 (物件陣列)
-                let checkpoints = Array.isArray(project['檢查點']) ? project['檢查點'] : [];
+                
+                // *** FIX: 增強檢查點的解析邏輯，支援 JSON 字串 ***
+                let checkpoints = project['檢查點'];
+                if (typeof checkpoints === 'string') {
+                    try {
+                        checkpoints = JSON.parse(checkpoints);
+                    } catch (e) {
+                        checkpoints = [];
+                    }
+                }
+                if (!Array.isArray(checkpoints)) checkpoints = [];
 
                 if (checkpoints && checkpoints.length > 0) {
                      let checklistHtml = '<h4 class="text-lg font-semibold mb-2">檢查點</h4>';
                      checkpoints.forEach((item, itemIndex) => { 
-                         checklistHtml += `<div class="flex items-center"><input type="checkbox" id="check_${projectId}_${itemIndex}" onchange="window.updateChecklistItemStatus('${projectId}', ${itemIndex}, this.checked)" class="h-4 w-4" ${item.completed ? 'checked' : ''}><label for="check_${projectId}_${itemIndex}" class="ml-3 ${item.completed ? 'line-through text-gray-500' : ''}">${item.text}</label></div>`; 
+                         // 變更: 增加游標樣式 cursor-pointer
+                         checklistHtml += `
+                         <div class="flex items-center mb-2 hover:bg-gray-50 p-1 rounded">
+                            <input type="checkbox" id="check_${projectId}_${itemIndex}" onchange="window.updateChecklistItemStatus('${projectId}', ${itemIndex}, this.checked)" class="h-5 w-5 cursor-pointer text-blue-600 focus:ring-blue-500 border-gray-300 rounded" ${item.completed ? 'checked' : ''}>
+                            <label for="check_${projectId}_${itemIndex}" class="ml-3 cursor-pointer select-none ${item.completed ? 'line-through text-gray-500' : 'text-gray-700'}">${item.text}</label>
+                         </div>`; 
                      });
                     checklistContainer.innerHTML = checklistHtml;
+                } else {
+                    checklistContainer.innerHTML = '<p class="text-sm text-gray-400 italic">無檢查點</p>';
                 }
                 
                 // 顯示編輯和刪除按鈕
@@ -1992,18 +2109,28 @@
 
                     if (isClosed) {
                         cardBorderColor = 'monitor-border-closed';
-                    } else if (registered > 10) {
-                        cardBorderColor = 'monitor-border-high';
-                    } else if (registered > 5) {
-                        cardBorderColor = 'monitor-border-medium';
+                    } else if (registered >= 16) {
+                        cardBorderColor = 'monitor-border-level-4';
+                    } else if (registered >= 11) {
+                        cardBorderColor = 'monitor-border-level-3';
+                    } else if (registered >= 6) {
+                        cardBorderColor = 'monitor-border-level-2';
                     } else {
-                        cardBorderColor = 'monitor-border-low';
+                        cardBorderColor = 'monitor-border-level-1';
                     }
                     
+                    // FIX: 修改 H3 標題，加入 onclick 事件與編輯圖示
                     return `
-                        <div class="bg-white ${cardBorderColor} rounded-xl shadow-lg p-6 flex flex-col gap-4 cursor-pointer border border-gray-200 hover:shadow-xl transition-shadow" ondblclick="window.openEditMonitoringModal('${item.ID}')">
+                        <div class="bg-white ${cardBorderColor} rounded-xl shadow-lg p-6 flex flex-col gap-4 cursor-pointer border border-gray-200 hover:shadow-xl transition-shadow">
                             <div class="flex justify-between items-start gap-2">
-                                <h3 class="text-xl font-bold text-link-title">${item['門診']}</h3>
+                                <h3 class="text-xl font-bold text-link-title hover:text-blue-600 cursor-pointer flex items-center gap-2" 
+                                    onclick="window.closeModal('monitoringDayDetailModal'); window.openEditMonitoringModal('${item.ID}')" 
+                                    title="點擊編輯資料">
+                                    ${item['門診']}
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 hover:text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                </h3>
                             </div>
                             
                             ${isClosed ? `
@@ -2077,7 +2204,17 @@
                 // 填入檢查點
                 const checklistContainer = document.getElementById('checklistItemContainer');
                 checklistContainer.innerHTML = '';
-                let checkpoints = Array.isArray(project['檢查點']) ? project['檢查點'] : [];
+                
+                // *** FIX: 增強檢查點的解析邏輯，支援 JSON 字串 ***
+                let checkpoints = project['檢查點'];
+                if (typeof checkpoints === 'string') {
+                    try {
+                        checkpoints = JSON.parse(checkpoints);
+                    } catch (e) {
+                        checkpoints = [];
+                    }
+                }
+                if (!Array.isArray(checkpoints)) checkpoints = [];
                 
                 if (checkpoints) {
                     checkpoints.forEach(item => addChecklistItemToForm(item));
@@ -2139,9 +2276,7 @@
 
             // NEW: 打開 "新增門診" 彈窗 (清空表單)
             openAddMonitoringModal: function() {
-                // --- 🐞 BUG 修正 ---
-                // 原本是 'addProjectForm'，導致表單沒有被清空
-                document.getElementById('addMonitoringForm').reset(); 
+                document.getElementById('addProjectForm').reset();
                 document.getElementById('editMonitoringId').value = '';
                 document.getElementById('monitoringModalTitle').textContent = '新增門診項目';
                 
@@ -2217,7 +2352,13 @@
                 if (projectIndex === -1) return;
 
                 let project = allProjectsData[projectIndex];
-                let checkpoints = Array.isArray(project['檢查點']) ? [...project['檢查點']] : [];
+                
+                // *** FIX: 這裡也要確保是陣列 ***
+                let checkpointsRaw = project['檢查點'];
+                if (typeof checkpointsRaw === 'string') {
+                    try { checkpointsRaw = JSON.parse(checkpointsRaw); } catch(e) { checkpointsRaw = []; }
+                }
+                let checkpoints = Array.isArray(checkpointsRaw) ? [...checkpointsRaw] : [];
 
                 if (checkpoints[itemIndex]) {
                     // 1. 先在本地端更新
@@ -2229,6 +2370,27 @@
                         sheetName: '團隊專案', // 告訴後端要操作哪個 sheet
                         data: { ...project, '檢查點': JSON.stringify(checkpoints) } // 傳送 JSON 字串
                     };
+                    
+                    // NEW: 即時更新彈窗內的進度條
+                    const { progress, totalTasks, completedTasks } = getCalculatedProjectStatus(project);
+                    const progressBar = document.getElementById('modalProgressBar');
+                    const progressText = document.getElementById('modalProgressText');
+                    if (progressBar && progressText) {
+                        progressBar.style.width = `${progress}%`;
+                        progressText.textContent = `${Math.round(progress)}% (${completedTasks}/${totalTasks})`;
+                    }
+                    
+                    // NEW: 即時更新刪除線樣式
+                    const label = document.querySelector(`label[for='check_${projectId}_${itemIndex}']`);
+                    if(label) {
+                         if(isChecked) {
+                             label.classList.add('line-through', 'text-gray-500');
+                             label.classList.remove('text-gray-700');
+                         } else {
+                             label.classList.remove('line-through', 'text-gray-500');
+                             label.classList.add('text-gray-700');
+                         }
+                    }
 
                     try {
                         // 2. 傳送到後端
@@ -2236,15 +2398,9 @@
                         showToast('檢查點狀態已更新！');
                         // 3. 後端成功，正式更新本地快取 (project 物件已在上面更新)
                         allProjectsData[projectIndex] = project; 
-                        // 變更: 呼叫 applyProjectFilters
+                        // 變更: 呼叫 applyProjectFilters (更新背景卡片)
                         applyProjectFilters();
                         
-                        // 更新 UI 上的刪除線
-                        const label = document.querySelector(`label[for='check_${projectId}_${itemIndex}']`);
-                        if(label) {
-                             if(isChecked) label.classList.add('line-through', 'text-gray-500');
-                             else label.classList.remove('line-through', 'text-gray-500');
-                        }
                     } catch (error) {
                         showToast(`更新失敗: ${error.message}`);
                         // 4. 儲存失敗，復原本地端的變更
@@ -2252,13 +2408,27 @@
                         project['檢查點'] = checkpoints;
                         allProjectsData[projectIndex] = project;
 
-                        // 5. 同時復原 UI 上的勾選狀態
+                        // 5. 同時復原 UI 上的勾選狀態和進度條
                         const checkbox = document.getElementById(`check_${projectId}_${itemIndex}`);
                         if (checkbox) checkbox.checked = !isChecked;
+                        
+                        // 復原文字樣式
                         const label = document.querySelector(`label[for='check_${projectId}_${itemIndex}']`);
                         if(label) {
-                             if(!isChecked) label.classList.add('line-through', 'text-gray-500');
-                             else label.classList.remove('line-through', 'text-gray-500');
+                             if(!isChecked) {
+                                 label.classList.add('line-through', 'text-gray-500');
+                                 label.classList.remove('text-gray-700');
+                             } else {
+                                 label.classList.remove('line-through', 'text-gray-500');
+                                 label.classList.add('text-gray-700');
+                             }
+                        }
+                        
+                        // 復原進度條
+                        const { progress: oldProgress, totalTasks: oldTotal, completedTasks: oldCompleted } = getCalculatedProjectStatus(project);
+                        if (progressBar && progressText) {
+                            progressBar.style.width = `${oldProgress}%`;
+                            progressText.textContent = `${Math.round(oldProgress)}% (${oldCompleted}/${oldTotal})`;
                         }
                     }
                 }
