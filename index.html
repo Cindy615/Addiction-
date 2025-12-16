@@ -380,6 +380,7 @@
                     <button id="welcomeBtn" data-view="welcome" class="tab-button py-2 px-4 rounded-lg transition-all duration-200 shadow-md">主頁</button>
                     <button id="eventsBtn" data-view="events" class="tab-button py-2 px-4 rounded-lg transition-all duration-200 shadow-md">團隊活動</button>
                     <button id="projectsBtn" data-view="projects" class="tab-button py-2 px-4 rounded-lg transition-all duration-200 shadow-md">團隊專案</button>
+                    <button id="membersBtn" data-view="members" class="tab-button py-2 px-4 rounded-lg transition-all duration-200 shadow-md">團隊成員</button>
                     <button id="todosBtn" data-view="todos" class="tab-button py-2 px-4 rounded-lg transition-all duration-200 shadow-md">待辦事項</button>
                     <button id="casesBtn" data-view="cases" class="tab-button py-2 px-4 rounded-lg transition-all duration-200 shadow-md">個案補助追蹤</button>
                     <button id="monitoringBtn" data-view="monitoring" class="tab-button py-2 px-4 rounded-lg transition-all duration-200 shadow-md">門診監測</button>
@@ -387,15 +388,8 @@
             </div>
         </div>
 
-        <div class="flex flex-col-reverse md:flex-row gap-6 container-fluid">
-            <aside class="w-full md:w-80 bg-white rounded-xl shadow-lg p-6 member-container">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">團隊成員</h2>
-                <div id="memberList" class="space-y-2 mb-4">
-                    <div class="text-center p-8 text-gray-500">載入中...</div>
-                </div>
-            </aside>
-
-            <div id="mainContent" class="flex-1 bg-white rounded-xl shadow-lg p-6 flex flex-col">
+        <div class="container-fluid max-w-full mx-auto">
+            <div id="mainContent" class="w-full bg-white rounded-xl shadow-lg p-6 flex flex-col min-h-[calc(100vh-12rem)]">
                 <div class="flex items-center justify-between mb-4">
                     <p id="lastUpdated" class="text-sm text-gray-500">上次更新：載入中...</p>
                     <div id="loadingIndicator" class="hidden flex items-center">
@@ -537,7 +531,7 @@
         let allCasesData = [], allEventsData = [], allMembersData = [], allProjectsData = [], allMonitoringData = [], allTodosData = [];
         let currentView = 'welcome';
         let currentIOSEventDate = '';
-        window.currentCaseType = 'all'; // Initialize global variable
+        window.currentCaseType = 'all';
 
         const jobTitleColors = { '醫師': 'job-color-1', '臨床心理師': 'job-color-2', '個管師': 'job-color-3', '研究助理': 'job-color-4', '社工': 'job-color-5', 'default': 'job-color-default' };
         const priorityColors = { '高': 'priority-high', '中': 'priority-medium', '低': 'priority-low' };
@@ -598,21 +592,191 @@
             const progress = (totalTasks > 0) ? (completedTasks / totalTasks) * 100 : 0;
             const endDate = new Date(project['截止日期'] + 'T23:59:59');
             const today = new Date(); today.setHours(0,0,0,0);
+            
             let status = project['狀態'];
             let colorClass = 'status-inprogress';
             let isCompleted = false;
-            if (progress === 100) { status = '已完成'; colorClass = 'status-done'; isCompleted = true; if (endDate < today) { status = '已完成但逾期'; colorClass = 'status-done-late'; } }
-            else if (endDate < today) { status = '逾期'; colorClass = 'status-overdue'; }
-            else { if (status === '規劃中') colorClass = 'status-planning'; else if (status === '暫停') colorClass = 'status-paused'; }
+
+            // 修正: 優先判斷手動狀態
+            if (status === '已完成' || progress === 100) {
+                isCompleted = true;
+                colorClass = 'status-done';
+                if (progress === 100 && status !== '已完成') status = '已完成';
+                if (status === '已完成' && endDate < today && progress < 100) {
+                    // 如果手動完成但日期過了，保持綠色，不顯示逾期
+                } else if (progress === 100 && endDate < today) {
+                    status = '已完成但逾期';
+                    colorClass = 'status-done-late';
+                }
+            } 
+            else if (endDate < today) {
+                status = '逾期';
+                colorClass = 'status-overdue';
+            }
+            else {
+                if (status === '規劃中') colorClass = 'status-planning';
+                else if (status === '暫停') colorClass = 'status-paused';
+            }
+            
             return { status, colorClass, progress, isCompleted, totalTasks, completedTasks };
         }
 
         function renderWelcomePage() {
+            // 計算統計數據
+            const activeProjectsCount = allProjectsData.filter(p => {
+                const s = getCalculatedProjectStatus(p);
+                return !s.isCompleted;
+            }).length;
+            const pendingTodosCount = allTodosData.filter(t => t['狀態'] !== '完成').length;
+            
+            // 計算本週剩餘活動
+            const today = new Date(); today.setHours(0,0,0,0);
+            const nextWeek = new Date(today); nextWeek.setDate(today.getDate() + 7);
+            const upcomingEventsCount = allEventsData.filter(e => {
+                const d = new Date(e['日期'].split('T')[0] + 'T00:00:00');
+                return d >= today && d <= nextWeek;
+            }).length;
+
             document.getElementById('pageContainer').innerHTML = `
-                <div class="p-4 space-y-8">
-                    <div><h3 class="text-2xl font-bold text-gray-800 mb-4">未來一週門診</h3><div id="welcomeMonitoringList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">${renderWelcomeMonitoring()}</div></div>
-                    <div><h3 class="text-2xl font-bold text-gray-800 mb-4">進行中的專案</h3><div id="welcomeProjectList" class="space-y-4">${renderWelcomeProjects()}</div></div>
+                <div class="space-y-6 pb-8">
+                    <!-- Top Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow" onclick="document.getElementById('projectsBtn').click()">
+                            <div>
+                                <p class="text-gray-500 text-sm font-medium">進行中的專案</p>
+                                <p class="text-3xl font-bold text-gray-800">${activeProjectsCount}</p>
+                            </div>
+                            <div class="bg-blue-100 p-3 rounded-full text-blue-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-yellow-500 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow" onclick="document.getElementById('todosBtn').click()">
+                            <div>
+                                <p class="text-gray-500 text-sm font-medium">待辦事項</p>
+                                <p class="text-3xl font-bold text-gray-800">${pendingTodosCount}</p>
+                            </div>
+                            <div class="bg-yellow-100 p-3 rounded-full text-yellow-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-green-500 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow" onclick="document.getElementById('eventsBtn').click()">
+                            <div>
+                                <p class="text-gray-500 text-sm font-medium">本週活動</p>
+                                <p class="text-3xl font-bold text-gray-800">${upcomingEventsCount}</p>
+                            </div>
+                            <div class="bg-green-100 p-3 rounded-full text-green-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Split Layout: Clinics (Left) & Events/Todos (Right) -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Left Column: Upcoming Clinics -->
+                        <div class="lg:col-span-2 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-xl font-bold text-gray-800 border-l-4 border-[#3f7585] pl-3">未來一週門診監測</h3>
+                                <button onclick="document.getElementById('monitoringBtn').click()" class="text-sm text-blue-600 hover:underline">查看全部</button>
+                            </div>
+                            <div id="welcomeMonitoringList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                ${renderWelcomeMonitoring()}
+                            </div>
+                            
+                            <div class="pt-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-xl font-bold text-gray-800 border-l-4 border-[#3f7585] pl-3">進行中的專案</h3>
+                                    <button onclick="document.getElementById('projectsBtn').click()" class="text-sm text-blue-600 hover:underline">查看全部</button>
+                                </div>
+                                <div id="welcomeProjectList" class="space-y-4">
+                                    ${renderWelcomeProjects()}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Sidebar (Events & Urgent Todos) -->
+                        <div class="space-y-6">
+                            <!-- Mini Events Widget -->
+                            <div class="bg-white rounded-xl shadow p-4 border border-gray-100">
+                                <div class="flex items-center justify-between mb-3 pb-2 border-b">
+                                    <h4 class="font-bold text-gray-800">近期活動</h4>
+                                    <button onclick="window.openAddEventModal()" class="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded text-gray-600">+</button>
+                                </div>
+                                <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                                    ${renderWelcomeMiniEvents()}
+                                </div>
+                            </div>
+
+                             <!-- Mini Todos Widget -->
+                             <div class="bg-white rounded-xl shadow p-4 border border-gray-100">
+                                <div class="flex items-center justify-between mb-3 pb-2 border-b">
+                                    <h4 class="font-bold text-gray-800">緊急/待辦事項</h4>
+                                    <button onclick="window.openAddTodoModal()" class="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded text-gray-600">+</button>
+                                </div>
+                                <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                     ${renderWelcomeMiniTodos()}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>`;
+        }
+
+        function renderWelcomeMiniEvents() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            // Get next 5 events
+            const events = allEventsData.filter(e => {
+                const d = new Date(e['日期'].split('T')[0] + 'T00:00:00');
+                return d >= today;
+            }).sort((a,b) => new Date(a['日期']) - new Date(b['日期'])).slice(0, 5);
+
+            if (events.length === 0) return '<p class="text-sm text-gray-400 text-center py-4">近期無活動</p>';
+
+            return events.map(e => {
+                const d = new Date(e['日期'].split('T')[0] + 'T00:00:00');
+                const isToday = d.getTime() === today.getTime();
+                const type = e['類型'] || '其他';
+                const colorHex = eventTypeConfig[type] ? eventTypeConfig[type].hex : '#999';
+                
+                return `
+                <div class="flex gap-3 items-start group cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onclick='window.showEventEditFromIOS(${JSON.stringify(e).replace(/'/g, "&#39;")})'>
+                    <div class="flex flex-col items-center min-w-[3rem] bg-gray-50 rounded border border-gray-100 p-1">
+                        <span class="text-[10px] ${isToday ? 'text-red-500 font-bold' : 'text-gray-500'}">${d.getMonth()+1}/${d.getDate()}</span>
+                        <span class="text-xs font-bold text-gray-800">${['日','一','二','三','四','五','六'][d.getDay()]}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-gray-800 truncate">${e['活動名稱']}</p>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span class="w-2 h-2 rounded-full" style="background-color: ${colorHex}"></span>
+                            <span class="text-xs text-gray-500">${formatTime(e['開始時間'])}</span>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function renderWelcomeMiniTodos() {
+            // Filter urgent (High priority or due soon) and pending
+            const urgentTodos = allTodosData.filter(t => t['狀態'] !== '完成')
+                .sort((a,b) => {
+                    // Sort by Priority High first, then date
+                    const pA = a['優先級'] === '高' ? 0 : 1;
+                    const pB = b['優先級'] === '高' ? 0 : 1;
+                    if(pA !== pB) return pA - pB;
+                    return new Date(a['截止日期']||'9999-12-31') - new Date(b['截止日期']||'9999-12-31');
+                }).slice(0, 5);
+
+            if (urgentTodos.length === 0) return '<p class="text-sm text-gray-400 text-center py-4">太棒了！無待辦事項</p>';
+
+            return urgentTodos.map(t => `
+                <div class="flex items-start gap-2 border-b border-gray-50 last:border-0 pb-2 cursor-pointer hover:bg-gray-50 p-1 rounded" onclick="window.openEditTodoModal('${t.ID}')">
+                    <div class="mt-1 h-2 w-2 rounded-full flex-shrink-0 ${t['優先級']==='高'?'bg-red-500':'bg-yellow-500'}"></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm text-gray-800 truncate ${t['狀態']==='完成'?'line-through text-gray-400':''}">${t['事項']}</p>
+                        <p class="text-xs text-gray-400">${t['負責人'] || '未指定'} • ${formatSimpleDate(t['截止日期'])}</p>
+                    </div>
+                </div>
+            `).join('');
         }
         
         function renderWelcomeMonitoring() {
@@ -638,6 +802,12 @@
             for (const [date, items] of Object.entries(groupedByDate)) {
                 items.sort((a, b) => (a['門診'] || '').localeCompare(b['門診'] || ''));
                 
+                // Highlight Today
+                const dateObj = new Date(date + 'T00:00:00');
+                const isToday = dateObj.getTime() === today.getTime();
+                const cardBorder = isToday ? 'border-l-4 border-red-500 ring-2 ring-red-100' : 'border border-gray-100';
+                const bgClass = isToday ? 'bg-red-50' : 'bg-white';
+                
                 const dateDisplay = formatSimpleDate(date);
                 let listHtml = '';
                 let dayTotal = 0;
@@ -659,31 +829,29 @@
                     }
                     
                     const content = isClosed 
-                        ? `<span class="text-gray-400 italic">停診</span>` 
-                        : `<span class="font-bold text-gray-800">${reg} 人</span>`;
+                        ? `<span class="text-gray-400 italic text-xs">停診</span>` 
+                        : `<span class="font-bold text-gray-800 text-sm">${reg} 人</span>`;
                         
                     listHtml += `
-                        <div class="flex justify-between items-center p-2 rounded bg-gray-50 border-l-4 ${borderClass} hover:bg-gray-100 transition-colors cursor-pointer" onclick="window.openEditMonitoringModal('${item.ID}')">
+                        <div class="flex justify-between items-center p-2 rounded bg-white/60 border-l-4 ${borderClass} hover:bg-white transition-colors cursor-pointer mb-1 shadow-sm" onclick="window.openEditMonitoringModal('${item.ID}')">
                             <span class="text-sm font-medium text-gray-700 truncate mr-2">${item['門診']}</span>
-                            <div class="text-sm text-right whitespace-nowrap">${content}</div>
+                            <div class="text-right whitespace-nowrap">${content}</div>
                         </div>
                     `;
                 });
                 
                 html += `
-                    <div class="bg-white rounded-xl shadow p-4 flex flex-col h-full border border-gray-100">
-                        <h4 class="font-bold text-lg text-gray-800 border-b border-gray-100 pb-2 mb-3 flex items-center justify-between">
+                    <div class="${bgClass} ${cardBorder} rounded-xl shadow p-4 flex flex-col h-full transition-all">
+                        <h4 class="font-bold text-lg text-gray-800 border-b border-gray-200/50 pb-2 mb-3 flex items-center justify-between">
                             <div class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
+                                ${isToday ? '<span class="text-red-500 mr-2 text-xs font-extrabold border border-red-500 px-1 rounded">TODAY</span>' : ''}
                                 ${dateDisplay}
                             </div>
-                            <span class="ml-2 bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded border border-blue-200 whitespace-nowrap">
-                                本日總計: ${dayTotal} 人
+                            <span class="ml-2 bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded border border-blue-200 whitespace-nowrap">
+                                ${dayTotal} 人
                             </span>
                         </h4>
-                        <div class="space-y-2 flex-1">
+                        <div class="space-y-1 flex-1">
                             ${listHtml}
                         </div>
                     </div>
@@ -693,9 +861,95 @@
         }
         
         function renderWelcomeProjects() {
+            // 使用修正後的 getCalculatedProjectStatus
             const active = allProjectsData.map(p => ({ p, s: getCalculatedProjectStatus(p) })).filter(x => !x.s.isCompleted).sort((a, b) => new Date(a.p['截止日期']) - new Date(b.p['截止日期']));
             if (active.length === 0) return '<div class="text-center p-4 text-gray-500 bg-gray-50 rounded-lg">目前沒有進行中的專案。</div>';
-            return active.map(({ p, s }) => `<div class="bg-white rounded-xl shadow-lg p-4 cursor-pointer border border-gray-200 hover:shadow-xl transition-shadow" onclick="window.showProjectDetails('${p.ID}')" ondblclick="window.openEditProjectModal('${p.ID}')"><div class="flex flex-col md:flex-row md:items-center gap-4"><div class="flex-1"><p class="text-lg font-bold text-link-title">${p['專案名稱']}</p><p class="text-sm text-gray-500"><strong>負責:</strong> ${p['主要負責'] || 'N/A'}</p><p class="text-sm text-gray-500"><strong>截止:</strong> ${formatSimpleDate(p['截止日期'])}</p></div><div class="w-full md:w-48"><div class="flex justify-between text-xs mb-1"><span class="font-semibold px-2 py-1 rounded ${s.colorClass}">${s.status}</span><span class="text-gray-600">${s.progress.toFixed(0)}%</span></div><div class="w-full bg-gray-200 rounded-full h-2"><div class="progress-bar-inner h-2 rounded-full" style="width: ${s.progress}%"></div></div></div></div></div>`).join('');
+            
+            // Limit to 4 projects for dashboard
+            return active.slice(0, 4).map(({ p, s }) => `<div class="bg-white rounded-xl shadow p-4 cursor-pointer border border-gray-200 hover:shadow-lg transition-shadow" onclick="window.showProjectDetails('${p.ID}')" ondblclick="window.openEditProjectModal('${p.ID}')"><div class="flex flex-col md:flex-row md:items-center gap-4"><div class="flex-1"><p class="text-lg font-bold text-link-title">${p['專案名稱']}</p><p class="text-sm text-gray-500"><strong>負責:</strong> ${p['主要負責'] || 'N/A'}</p><p class="text-sm text-gray-500"><strong>截止:</strong> ${formatSimpleDate(p['截止日期'])}</p></div><div class="w-full md:w-48"><div class="flex justify-between text-xs mb-1"><span class="font-semibold px-2 py-1 rounded ${s.colorClass}">${s.status}</span><span class="text-gray-600">${s.progress.toFixed(0)}%</span></div><div class="w-full bg-gray-200 rounded-full h-2"><div class="progress-bar-inner h-2 rounded-full" style="width: ${s.progress}%"></div></div></div></div></div>`).join('');
+        }
+        
+        function renderMembersPage() {
+            const pageContainer = document.getElementById('pageContainer');
+            
+            // Group members by job title
+            const groupedMembers = {};
+            // Define sort order for roles
+            const sortOrder = ['醫師', '臨床心理師', '個管師', '社工', '研究助理', '其他'];
+            
+            allMembersData.forEach(member => {
+                const title = member['職稱'] || '其他';
+                if (!groupedMembers[title]) groupedMembers[title] = [];
+                groupedMembers[title].push(member);
+            });
+            
+            // Generate HTML
+            let html = `<h2 class="text-2xl font-bold text-gray-800 mb-6">團隊成員名錄</h2><div class="space-y-8">`;
+            
+            // Function to sort groups based on defined order
+            const sortedTitles = Object.keys(groupedMembers).sort((a, b) => {
+                const idxA = sortOrder.indexOf(a);
+                const idxB = sortOrder.indexOf(b);
+                return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+            });
+            
+            sortedTitles.forEach(title => {
+                const members = groupedMembers[title].sort((a, b) => (a['排序'] || 99) - (b['排序'] || 99));
+                const colorClass = jobTitleColors[title] || jobTitleColors['default'];
+                
+                html += `
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-700 border-b pb-2 mb-4 flex items-center">
+                            ${title} 
+                            <span class="text-sm font-normal text-gray-500 ml-2 bg-gray-100 px-2 py-0.5 rounded-full">
+                                ${members.length} 人
+                            </span>
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                `;
+                
+                members.forEach(member => {
+                    // Find active projects for this member (using corrected status check)
+                    const activeProjects = allProjectsData.filter(p => {
+                        const s = getCalculatedProjectStatus(p);
+                        return !s.isCompleted && 
+                        ((p['主要負責'] || '').includes(member['姓名']) || 
+                        (p['協同負責'] || '').includes(member['姓名']));
+                    });
+                    
+                    html += `
+                        <div class="bg-white rounded-xl shadow-md p-5 border-l-4 ${colorClass} hover:shadow-lg transition-all transform hover:-translate-y-1">
+                            <div class="flex justify-between items-center mb-3">
+                                <div>
+                                    <h4 class="text-lg font-bold text-gray-900">${member['姓名']}</h4>
+                                    <p class="text-xs text-gray-500 font-medium">${member['職稱']}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3 min-h-[3rem]">
+                                <p class="text-xs text-gray-500 font-bold mb-1.5">進行中專案：</p>
+                                ${activeProjects.length > 0 ? 
+                                    `<div class="flex flex-wrap gap-1.5">
+                                        ${activeProjects.map(p => `<span class="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100 cursor-pointer hover:bg-blue-100 transition-colors" onclick="window.showProjectDetails('${p.ID}')" title="點擊查看專案詳情">${p['專案名稱']}</span>`).join('')}
+                                    </div>` : 
+                                    `<p class="text-xs text-gray-400 italic">目前無進行中項目</p>`
+                                }
+                            </div>
+
+                            <div class="pt-3 border-t border-gray-50">
+                                <p class="text-xs text-gray-400 line-clamp-2">
+                                    ${member['備註'] ? member['備註'] : '<span class="italic opacity-50">暫無備註</span>'}
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div></div>`;
+            });
+            
+            html += `</div>`;
+            pageContainer.innerHTML = html;
         }
 
         function renderEventsPage() {
@@ -879,9 +1133,12 @@
                 .sort(([,a], [,b]) => b - a)
                 .forEach(([manager, count]) => {
                     statsHtml += `
-                        <div class="bg-white p-4 rounded-xl shadow border border-gray-100">
-                            <p class="text-xs text-gray-500">${manager}</p>
-                            <p class="text-2xl font-bold text-gray-800">${count}</p>
+                        <div class="bg-white p-4 rounded-xl shadow border border-gray-100 cursor-pointer hover:shadow-md transition-all hover:bg-blue-50" onclick="window.filterByManager('${manager}')">
+                            <div class="flex justify-between items-center">
+                                <p class="text-xs text-gray-500 font-bold">${manager}</p>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            </div>
+                            <p class="text-2xl font-bold text-gray-800 mt-1">${count}</p>
                         </div>
                     `;
                 });
@@ -924,6 +1181,18 @@
         function renderCasesPage() { 
             updateCasesView(); 
         }
+        
+        window.filterByManager = (name) => {
+            const searchInput = document.getElementById('searchInput');
+            if(searchInput) {
+                searchInput.value = name;
+                // Trigger input event to refresh list
+                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                // Optionally scroll to list
+                document.getElementById('caseList').scrollIntoView({ behavior: 'smooth' });
+                showToast(`已篩選：${name}`);
+            }
+        }
 
         function renderProjectsPage() {
             const now = new Date();
@@ -955,7 +1224,7 @@
                 passwordScreen.style.display = 'none';
                 dashboardContainer.classList.remove('hidden');
                 loadInitialDashboardData();
-                ['welcomeBtn', 'eventsBtn', 'projectsBtn', 'casesBtn', 'monitoringBtn', 'todosBtn'].forEach(id => {
+                ['welcomeBtn', 'eventsBtn', 'projectsBtn', 'membersBtn', 'casesBtn', 'monitoringBtn', 'todosBtn'].forEach(id => {
                     const btn = document.getElementById(id);
                     if (btn) btn.addEventListener('click', (e) => switchView(e.target.dataset.view));
                 });
@@ -999,9 +1268,23 @@
         
         async function loadInitialDashboardData() {
             document.getElementById('lastUpdated').textContent = '更新中...';
-            const [m, p, mon] = await Promise.all([fetchData('團隊成員'), fetchData('團隊專案'), fetchData('門診監測')]);
-            allMembersData = Array.isArray(m)?m:[]; allProjectsData = Array.isArray(p)?p:[]; allMonitoringData = Array.isArray(mon)?mon:[];
-            renderWelcomePage(); renderMembersList(allProjectsData);
+            // UPDATE: Also fetch '團隊活動' and '待辦事項' initially to populate dashboard widgets
+            const [m, p, mon, evts, todos] = await Promise.all([
+                fetchData('團隊成員'), 
+                fetchData('團隊專案'), 
+                fetchData('門診監測'),
+                fetchData('團隊活動'),
+                fetchData('待辦事項')
+            ]);
+            
+            allMembersData = Array.isArray(m)?m:[]; 
+            allProjectsData = Array.isArray(p)?p:[]; 
+            allMonitoringData = Array.isArray(mon)?mon:[];
+            allEventsData = Array.isArray(evts)?evts:[];
+            allTodosData = Array.isArray(todos)?todos:[];
+
+            renderWelcomePage(); 
+            // Removed redundant sidebar render call
             document.getElementById('welcomeBtn').classList.add('active');
             document.getElementById('lastUpdated').textContent = `上次更新：${new Date().toLocaleTimeString('zh-TW')}`;
         }
@@ -1011,10 +1294,13 @@
             document.querySelectorAll('.tab-button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
             document.getElementById('pageContainer').innerHTML = '<div class="text-center p-8 text-gray-500">載入中...</div>';
             
-            if(view === 'welcome') { renderWelcomePage(); renderMembersList(allProjectsData); }
+            // Removed sidebar toggle logic as sidebar is removed from HTML
+
+            if(view === 'welcome') { renderWelcomePage(); } // Removed renderMembersList call
             else if(view === 'events') { if(!allEventsData.length) allEventsData = await fetchData('團隊活動'); renderEventsPage(); }
             else if(view === 'cases') { if(!allCasesData.length) allCasesData = await fetchData('酒癮個案補助使用追蹤'); /* Handled by updateCasesView called immediately below */  updateCasesView(); }
             else if(view === 'projects') { if(!allProjectsData.length) allProjectsData = await fetchData('團隊專案'); renderProjectsPage(); }
+            else if(view === 'members') { renderMembersPage(); }
             else if(view === 'monitoring') { if(!allMonitoringData.length) allMonitoringData = await fetchData('門診監測'); updateMonitoringView(); }
             else if(view === 'todos') { if(!allTodosData.length) allTodosData = await fetchData('待辦事項'); renderTodosPage(); }
         }
@@ -1055,6 +1341,20 @@
                     </div>
                     <button type="button" class="text-red-500 hover:text-red-700 font-bold">&times;</button>
                 `;
+                
+                // Add event listener for auto-update logic on checkbox change
+                const checkbox = newItem.querySelector('input[type="checkbox"]');
+                checkbox.addEventListener('change', () => {
+                    const allCheckboxes = document.querySelectorAll('#checklistItemContainer input[type="checkbox"]');
+                    const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+                    const statusSelect = document.getElementById('projectStatus');
+                    
+                    if (allChecked && allCheckboxes.length > 0 && (statusSelect.value === '進行中' || statusSelect.value === '規劃中')) {
+                        statusSelect.value = '已完成';
+                        // Optional visual feedback could be added here
+                    }
+                });
+
                 newItem.querySelector('button').addEventListener('click', () => newItem.remove());
                 container.appendChild(newItem);
                 if (!item.text) input.value = '';
@@ -1067,6 +1367,20 @@
                 e.preventDefault();
                 const btn = this.querySelector('button[type="submit"]'); btn.disabled=true; btn.textContent='儲存中...';
                 const id = document.getElementById('editProjectId').value;
+                
+                // Get Checkpoints
+                const checkpoints = Array.from(document.querySelectorAll('.checklist-item-wrapper')).map(d=>({
+                    text: d.querySelector('.checklist-item-text').textContent, 
+                    completed: d.querySelector('input').checked
+                }));
+
+                // Auto-update status logic
+                let status = document.getElementById('projectStatus').value;
+                // Only auto-complete if currently 'Processing' or 'Planning'
+                if ((status === '進行中' || status === '規劃中') && checkpoints.length > 0 && checkpoints.every(i => i.completed)) {
+                    status = '已完成';
+                }
+
                 const data = {
                     'ID': id || `proj_${Date.now()}`,
                     '專案名稱': document.getElementById('projectName').value,
@@ -1075,16 +1389,23 @@
                     '備註': document.getElementById('projectDescription').value,
                     '主要負責': Array.from(document.querySelectorAll('#projectLeadSelection input:checked')).map(c=>c.value).join(', '),
                     '協同負責': Array.from(document.querySelectorAll('#projectTeamSelection input:checked')).map(c=>c.value).join(', '),
-                    '狀態': document.getElementById('projectStatus').value,
+                    '狀態': status, // Use the potentially modified status
                     '優先級': document.getElementById('projectPriority').value,
                     '開始日期': document.getElementById('startDate').value,
                     '截止日期': document.getElementById('endDate').value,
-                    '檢查點': JSON.stringify(Array.from(document.querySelectorAll('.checklist-item-wrapper')).map(d=>({text: d.querySelector('.checklist-item-text').textContent, completed: d.querySelector('input').checked})))
+                    '檢查點': JSON.stringify(checkpoints)
                 };
                 try {
                     await sendData({action: id?'UPDATE_PROJECT':'CREATE_PROJECT', sheetName:'團隊專案', data});
                     if(id) { const idx = allProjectsData.findIndex(p=>p.ID===id); if(idx!==-1) allProjectsData[idx]=data; } else allProjectsData.push(data);
-                    showToast('專案已儲存'); applyProjectFilters(); window.closeModal('addProjectModal');
+                    showToast('專案已儲存'); 
+                    
+                    // Update current view immediately
+                    if(currentView === 'welcome') renderWelcomePage();
+                    else if(currentView === 'projects') applyProjectFilters();
+                    else if(currentView === 'members') renderMembersPage();
+                    
+                    window.closeModal('addProjectModal');
                 } catch(e) { showToast('失敗: '+e.message); } finally { btn.disabled=false; btn.textContent='儲存'; }
             });
 
@@ -1109,7 +1430,10 @@
                     await sendData({action: id?'UPDATE_EVENT':'CREATE_EVENT', sheetName:'團隊活動', data});
                     if(id) { const idx = allEventsData.findIndex(x=>x.ID===id); if(idx!==-1) allEventsData[idx]=data; } else allEventsData.push(data);
                     showToast('活動已儲存'); 
+                    
                     if(currentView === 'events') updateEventCalendar(); 
+                    else if(currentView === 'welcome') renderWelcomePage();
+                    
                     window.closeModal('addEventModal');
                 } catch(e) { showToast('失敗: '+e.message); } finally { btn.disabled=false; btn.textContent='儲存'; }
             });
@@ -1136,7 +1460,10 @@
                     await sendData({action: id?'UPDATE_MONITORING_ITEM':'CREATE_MONITORING_ITEM', sheetName:'門診監測', data});
                     if(id) { const idx = allMonitoringData.findIndex(m=>m.ID===id); if(idx!==-1) allMonitoringData[idx]=data; } else allMonitoringData.push(data);
                     showToast('門診資料已儲存'); 
-                    updateMonitoringView(); // Update the view
+                    
+                    if(currentView === 'monitoring') updateMonitoringView(); 
+                    else if(currentView === 'welcome') renderWelcomePage();
+                    
                     window.closeModal('addMonitoringModal');
                 } catch(e) { showToast('失敗: '+e.message); } finally { btn.disabled=false; btn.textContent='儲存'; }
             });
@@ -1160,7 +1487,12 @@
                 try {
                     await sendData({action: id?'UPDATE_TODO':'CREATE_TODO', sheetName:'待辦事項', data});
                     if(id) { const idx = allTodosData.findIndex(t=>t.ID===id); if(idx!==-1) allTodosData[idx]=data; } else allTodosData.push(data);
-                    showToast('待辦事項已儲存'); renderTodosPage(); window.closeModal('addTodoModal');
+                    showToast('待辦事項已儲存'); 
+                    
+                    if(currentView === 'todos') renderTodosPage(); 
+                    else if(currentView === 'welcome') renderWelcomePage();
+                    
+                    window.closeModal('addTodoModal');
                 } catch(e) { showToast('失敗: '+e.message); } finally { btn.disabled=false; btn.textContent='儲存'; }
             });
 
@@ -1182,14 +1514,7 @@
         // --- Shared & Helpers ---
         window.closeModal = id => document.getElementById(id).style.display = 'none';
         function showToast(msg) { const t=document.getElementById('toast-notification'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
-        function renderMembersList(pData) {
-            const c = document.getElementById('memberList');
-            if(!allMembersData.length) { c.innerHTML='<p class="text-center text-gray-500">無成員資料</p>'; return; }
-            c.innerHTML = allMembersData.sort((a,b)=>(a['排序']||99)-(b['排序']||99)).map(m => {
-                const cnt = pData.filter(p=> (p['主要負責']||'').includes(m['姓名']) || (p['協同負責']||'').includes(m['姓名'])).length;
-                return `<div class="${jobTitleColors[m['職稱']]||'job-color-default'} p-4 rounded-lg shadow-sm"><h4 class="font-bold text-lg">${m['姓名']}</h4><p class="text-sm">${m['職稱']}</p><p class="text-xs mt-1">(${cnt} 個專案)</p></div>`;
-            }).join('');
-        }
+        // renderMembersList function removed as it's no longer needed
         
         // This is the correct definition of filterCases
         function filterCases(type) {
@@ -1613,6 +1938,91 @@
              
              document.getElementById('caseModal').style.display = 'flex'; 
         }
+
+        // ============================================
+        // MEMBER PAGE LOGIC START
+        // ============================================
+        function renderMembersPage() {
+            const pageContainer = document.getElementById('pageContainer');
+            
+            // Group members by job title
+            const groupedMembers = {};
+            // Define sort order for roles
+            const sortOrder = ['醫師', '臨床心理師', '個管師', '社工', '研究助理', '其他'];
+            
+            allMembersData.forEach(member => {
+                const title = member['職稱'] || '其他';
+                if (!groupedMembers[title]) groupedMembers[title] = [];
+                groupedMembers[title].push(member);
+            });
+            
+            let html = `<h2 class="text-2xl font-bold text-gray-800 mb-6">團隊成員名錄</h2><div class="space-y-8">`;
+            
+            const sortedTitles = Object.keys(groupedMembers).sort((a, b) => {
+                const idxA = sortOrder.indexOf(a);
+                const idxB = sortOrder.indexOf(b);
+                return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+            });
+            
+            sortedTitles.forEach(title => {
+                const members = groupedMembers[title].sort((a, b) => (a['排序'] || 99) - (b['排序'] || 99));
+                const colorClass = jobTitleColors[title] || jobTitleColors['default'];
+                
+                html += `
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-700 border-b pb-2 mb-4 flex items-center">
+                            ${title} 
+                            <span class="text-sm font-normal text-gray-500 ml-2 bg-gray-100 px-2 py-0.5 rounded-full">
+                                ${members.length} 人
+                            </span>
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                `;
+                
+                members.forEach(member => {
+                    const activeProjects = allProjectsData.filter(p => 
+                        p['狀態'] === '進行中' && 
+                        ((p['主要負責'] || '').includes(member['姓名']) || 
+                        (p['協同負責'] || '').includes(member['姓名']))
+                    );
+                    
+                    html += `
+                        <div class="bg-white rounded-xl shadow-md p-5 border-l-4 ${colorClass} hover:shadow-lg transition-all transform hover:-translate-y-1">
+                            <div class="flex justify-between items-center mb-3">
+                                <div>
+                                    <h4 class="text-lg font-bold text-gray-900">${member['姓名']}</h4>
+                                    <p class="text-xs text-gray-500 font-medium">${member['職稱']}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3 min-h-[3rem]">
+                                <p class="text-xs text-gray-500 font-bold mb-1.5">進行中專案：</p>
+                                ${activeProjects.length > 0 ? 
+                                    `<div class="flex flex-wrap gap-1.5">
+                                        ${activeProjects.map(p => `<span class="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100 cursor-pointer hover:bg-blue-100 transition-colors" onclick="window.showProjectDetails('${p.ID}')" title="點擊查看專案詳情">${p['專案名稱']}</span>`).join('')}
+                                    </div>` : 
+                                    `<p class="text-xs text-gray-400 italic">目前無進行中項目</p>`
+                                }
+                            </div>
+
+                            <div class="pt-3 border-t border-gray-50">
+                                <p class="text-xs text-gray-400 line-clamp-2">
+                                    ${member['備註'] ? member['備註'] : '<span class="italic opacity-50">暫無備註</span>'}
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div></div>`;
+            });
+            
+            html += `</div>`;
+            pageContainer.innerHTML = html;
+        }
+        // ============================================
+        // MEMBER PAGE LOGIC END
+        // ============================================
 
     </script>
 </body>
