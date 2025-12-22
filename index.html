@@ -305,6 +305,7 @@
         .event-type-activity { background-color: #7DB9DE; } 
         .event-type-meeting { background-color: #90B44B; } 
         .event-type-course { background-color: #E2943B; } 
+        .event-type-supervision { background-color: #0089A7; }
         .event-type-other { background-color: #8B81C3; } 
         
         /* Monitoring Badges */
@@ -429,6 +430,7 @@
                         <option value="活動">活動 (藍色系)</option>
                         <option value="會議">會議 (綠色系)</option>
                         <option value="課程">課程 (橘色系)</option>
+                        <option value="督導">督導 (藍綠色系)</option>
                         <option value="其他">其他 (紫色系)</option>
                      </select>
                 </div>
@@ -538,7 +540,8 @@
         const eventTypeConfig = {
             '活動': { bg: 'event-type-activity', hex: '#7DB9DE' }, 
             '會議': { bg: 'event-type-meeting', hex: '#90B44B' },  
-            '課程': { bg: 'event-type-course', hex: '#E2943B' },   
+            '課程': { bg: 'event-type-course', hex: '#E2943B' },
+            '督導': { bg: 'event-type-supervision', hex: '#0089A7' },
             '其他': { bg: 'event-type-other', hex: '#8B81C3' },    
             'default': { bg: 'event-type-other', hex: '#8B81C3' } 
         };
@@ -597,13 +600,11 @@
             let colorClass = 'status-inprogress';
             let isCompleted = false;
 
-            // 修正: 優先判斷手動狀態
             if (status === '已完成' || progress === 100) {
                 isCompleted = true;
                 colorClass = 'status-done';
                 if (progress === 100 && status !== '已完成') status = '已完成';
                 if (status === '已完成' && endDate < today && progress < 100) {
-                    // 如果手動完成但日期過了，保持綠色，不顯示逾期
                 } else if (progress === 100 && endDate < today) {
                     status = '已完成但逾期';
                     colorClass = 'status-done-late';
@@ -622,24 +623,22 @@
         }
 
         function renderWelcomePage() {
-            // 計算統計數據
             const activeProjectsCount = allProjectsData.filter(p => {
                 const s = getCalculatedProjectStatus(p);
                 return !s.isCompleted;
             }).length;
             const pendingTodosCount = allTodosData.filter(t => t['狀態'] !== '完成').length;
             
-            // 計算本週剩餘活動
             const today = new Date(); today.setHours(0,0,0,0);
             const nextWeek = new Date(today); nextWeek.setDate(today.getDate() + 7);
             const upcomingEventsCount = allEventsData.filter(e => {
+                if (!e['日期']) return false;
                 const d = new Date(e['日期'].split('T')[0] + 'T00:00:00');
                 return d >= today && d <= nextWeek;
             }).length;
 
             document.getElementById('pageContainer').innerHTML = `
                 <div class="space-y-6 pb-8">
-                    <!-- Top Stats Cards -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow" onclick="document.getElementById('projectsBtn').click()">
                             <div>
@@ -647,7 +646,7 @@
                                 <p class="text-3xl font-bold text-gray-800">${activeProjectsCount}</p>
                             </div>
                             <div class="bg-blue-100 p-3 rounded-full text-blue-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
                             </div>
                         </div>
                         <div class="bg-white rounded-xl shadow p-5 border-l-4 border-yellow-500 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow" onclick="document.getElementById('todosBtn').click()">
@@ -670,9 +669,7 @@
                         </div>
                     </div>
 
-                    <!-- Split Layout: Clinics (Left) & Events/Todos (Right) -->
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <!-- Left Column: Upcoming Clinics -->
                         <div class="lg:col-span-2 space-y-4">
                             <div class="flex items-center justify-between">
                                 <h3 class="text-xl font-bold text-gray-800 border-l-4 border-[#3f7585] pl-3">未來一週門診監測</h3>
@@ -693,9 +690,7 @@
                             </div>
                         </div>
 
-                        <!-- Right Column: Sidebar (Events & Urgent Todos) -->
                         <div class="space-y-6">
-                            <!-- Mini Events Widget -->
                             <div class="bg-white rounded-xl shadow p-4 border border-gray-100">
                                 <div class="flex items-center justify-between mb-3 pb-2 border-b">
                                     <h4 class="font-bold text-gray-800">近期活動</h4>
@@ -706,7 +701,6 @@
                                 </div>
                             </div>
 
-                             <!-- Mini Todos Widget -->
                              <div class="bg-white rounded-xl shadow p-4 border border-gray-100">
                                 <div class="flex items-center justify-between mb-3 pb-2 border-b">
                                     <h4 class="font-bold text-gray-800">緊急/待辦事項</h4>
@@ -723,8 +717,8 @@
 
         function renderWelcomeMiniEvents() {
             const today = new Date(); today.setHours(0,0,0,0);
-            // Get next 5 events
             const events = allEventsData.filter(e => {
+                if (!e['日期']) return false;
                 const d = new Date(e['日期'].split('T')[0] + 'T00:00:00');
                 return d >= today;
             }).sort((a,b) => new Date(a['日期']) - new Date(b['日期'])).slice(0, 5);
@@ -756,10 +750,8 @@
         }
 
         function renderWelcomeMiniTodos() {
-            // Filter urgent (High priority or due soon) and pending
             const urgentTodos = allTodosData.filter(t => t['狀態'] !== '完成')
                 .sort((a,b) => {
-                    // Sort by Priority High first, then date
                     const pA = a['優先級'] === '高' ? 0 : 1;
                     const pB = b['優先級'] === '高' ? 0 : 1;
                     if(pA !== pB) return pA - pB;
@@ -802,7 +794,6 @@
             for (const [date, items] of Object.entries(groupedByDate)) {
                 items.sort((a, b) => (a['門診'] || '').localeCompare(b['門診'] || ''));
                 
-                // Highlight Today
                 const dateObj = new Date(date + 'T00:00:00');
                 const isToday = dateObj.getTime() === today.getTime();
                 const cardBorder = isToday ? 'border-l-4 border-red-500 ring-2 ring-red-100' : 'border border-gray-100';
@@ -861,41 +852,65 @@
         }
         
         function renderWelcomeProjects() {
-            // 使用修正後的 getCalculatedProjectStatus
             const active = allProjectsData.map(p => ({ p, s: getCalculatedProjectStatus(p) })).filter(x => !x.s.isCompleted).sort((a, b) => new Date(a.p['截止日期']) - new Date(b.p['截止日期']));
             if (active.length === 0) return '<div class="text-center p-4 text-gray-500 bg-gray-50 rounded-lg">目前沒有進行中的專案。</div>';
             
-            // Limit to 4 projects for dashboard
             return active.slice(0, 4).map(({ p, s }) => `<div class="bg-white rounded-xl shadow p-4 cursor-pointer border border-gray-200 hover:shadow-lg transition-shadow" onclick="window.showProjectDetails('${p.ID}')" ondblclick="window.openEditProjectModal('${p.ID}')"><div class="flex flex-col md:flex-row md:items-center gap-4"><div class="flex-1"><p class="text-lg font-bold text-link-title">${p['專案名稱']}</p><p class="text-sm text-gray-500"><strong>負責:</strong> ${p['主要負責'] || 'N/A'}</p><p class="text-sm text-gray-500"><strong>截止:</strong> ${formatSimpleDate(p['截止日期'])}</p></div><div class="w-full md:w-48"><div class="flex justify-between text-xs mb-1"><span class="font-semibold px-2 py-1 rounded ${s.colorClass}">${s.status}</span><span class="text-gray-600">${s.progress.toFixed(0)}%</span></div><div class="w-full bg-gray-200 rounded-full h-2"><div class="progress-bar-inner h-2 rounded-full" style="width: ${s.progress}%"></div></div></div></div></div>`).join('');
         }
         
         function renderMembersPage() {
             const pageContainer = document.getElementById('pageContainer');
             
-            // Group members by job title
             const groupedMembers = {};
-            // Define sort order for roles
-            const sortOrder = ['醫師', '臨床心理師', '個管師', '社工', '研究助理', '其他'];
+            const sortOrder = ['醫師', '酒癮計畫', '監所計畫', '藥癮整合計畫1', '藥癮整合計畫2', '美沙冬計畫', '院內', '其他'];
             
             allMembersData.forEach(member => {
-                const title = member['職稱'] || '其他';
-                if (!groupedMembers[title]) groupedMembers[title] = [];
-                groupedMembers[title].push(member);
+                let groupKey = '其他';
+                const title = (member['職稱'] || '').trim();
+                const businessType = (member['業務類別'] || '').trim();
+
+                if (title === '醫師') {
+                    groupKey = '醫師';
+                } else if (businessType) {
+                    groupKey = businessType;
+                } else {
+                    groupKey = title || '其他';
+                }
+
+                if (!groupedMembers[groupKey]) groupedMembers[groupKey] = [];
+                groupedMembers[groupKey].push(member);
             });
             
-            // Generate HTML
             let html = `<h2 class="text-2xl font-bold text-gray-800 mb-6">團隊成員名錄</h2><div class="space-y-8">`;
             
-            // Function to sort groups based on defined order
             const sortedTitles = Object.keys(groupedMembers).sort((a, b) => {
                 const idxA = sortOrder.indexOf(a);
                 const idxB = sortOrder.indexOf(b);
-                return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
+                return a.localeCompare(b, 'zh-TW');
             });
+
+            if (sortedTitles.length === 0) {
+                html += `<div class="text-gray-500">目前沒有成員資料。</div>`;
+            }
             
             sortedTitles.forEach(title => {
-                const members = groupedMembers[title].sort((a, b) => (a['排序'] || 99) - (b['排序'] || 99));
-                const colorClass = jobTitleColors[title] || jobTitleColors['default'];
+                const members = groupedMembers[title].sort((a, b) => (parseInt(a['排序']) || 99) - (parseInt(b['排序']) || 99));
+                
+                let colorClass = jobTitleColors[title] || 'job-color-default';
+                
+                if (colorClass === 'job-color-default') {
+                    if (title.includes('醫師')) colorClass = 'job-color-1';
+                    else if (title.includes('心理師')) colorClass = 'job-color-2';
+                    else if (title.includes('社工')) colorClass = 'job-color-5';
+                    else if (title.includes('個管')) colorClass = 'job-color-3';
+                    else if (title.includes('酒癮')) colorClass = 'job-color-2'; 
+                    else if (title.includes('監所')) colorClass = 'job-color-3';
+                    else if (title.includes('藥癮')) colorClass = 'job-color-4';
+                    else if (title.includes('美沙冬')) colorClass = 'job-color-5';
+                }
                 
                 html += `
                     <div>
@@ -909,20 +924,23 @@
                 `;
                 
                 members.forEach(member => {
-                    // Find active projects for this member (using corrected status check)
+                    const memberName = member['姓名'] || '';
                     const activeProjects = allProjectsData.filter(p => {
                         const s = getCalculatedProjectStatus(p);
                         return !s.isCompleted && 
-                        ((p['主要負責'] || '').includes(member['姓名']) || 
-                        (p['協同負責'] || '').includes(member['姓名']));
+                        ((p['主要負責'] || '').includes(memberName) || 
+                        (p['協同負責'] || '').includes(memberName));
                     });
+
+                    const note = member['備註'] || '暫無備註';
+                    const jobTitle = member['職稱'] || '';
                     
                     html += `
                         <div class="bg-white rounded-xl shadow-md p-5 border-l-4 ${colorClass} hover:shadow-lg transition-all transform hover:-translate-y-1">
                             <div class="flex justify-between items-center mb-3">
                                 <div>
-                                    <h4 class="text-lg font-bold text-gray-900">${member['姓名']}</h4>
-                                    <p class="text-xs text-gray-500 font-medium">${member['職稱']}</p>
+                                    <h4 class="text-lg font-bold text-gray-900">${memberName}</h4>
+                                    <p class="text-xs text-gray-500 font-medium">${jobTitle}</p>
                                 </div>
                             </div>
                             
@@ -937,8 +955,8 @@
                             </div>
 
                             <div class="pt-3 border-t border-gray-50">
-                                <p class="text-xs text-gray-400 line-clamp-2">
-                                    ${member['備註'] ? member['備註'] : '<span class="italic opacity-50">暫無備註</span>'}
+                                <p class="text-xs text-gray-400 line-clamp-2" title="${note}">
+                                    ${note === '暫無備註' ? '<span class="italic opacity-50">暫無備註</span>' : note}
                                 </p>
                             </div>
                         </div>
@@ -974,6 +992,7 @@
                     <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-1" style="background-color: #7DB9DE;"></span> 活動</div>
                     <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-1" style="background-color: #90B44B;"></span> 會議</div>
                     <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-1" style="background-color: #E2943B;"></span> 課程</div>
+                    <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-1" style="background-color: #0089A7;"></span> 督導</div>
                     <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-1" style="background-color: #8B81C3;"></span> 其他</div>
                 </div>
                 <div class="calendar-grid mb-2 hidden md:grid">
@@ -1774,7 +1793,21 @@
             document.getElementById('addMonitoringModal').style.display='flex';
         }
         
-        window.executeDeleteMonitoringItem = async (id) => { try { await sendData({action:'DELETE_MONITORING_ITEM', sheetName:'門診監測', id}); allMonitoringData=allMonitoringData.filter(m=>m.ID!==id); window.closeModal('addMonitoringModal'); showToast('已刪除'); updateMonitoringView(); } catch(e){showToast('失敗');} }
+        window.executeDeleteMonitoringItem = async (id) => { 
+            window.closeModal('deleteConfirmModal');
+            showToast('正在刪除...');
+            try { 
+                await sendData({action:'DELETE_MONITORING_ITEM', sheetName:'門診監測', id}); 
+                allMonitoringData=allMonitoringData.filter(m=>m.ID!==id); 
+                window.closeModal('addMonitoringModal'); 
+                window.closeModal('monitoringDayDetailModal');
+                showToast('已刪除'); 
+                if(currentView === 'monitoring') updateMonitoringView();
+                else if(currentView === 'welcome') renderWelcomePage();
+            } catch(e){
+                showToast('失敗');
+            } 
+        }
 
         window.openAddProjectModal = () => {
             document.getElementById('addProjectForm').reset(); document.getElementById('editProjectId').value=''; document.getElementById('projectModalTitle').textContent='新增項目'; document.getElementById('checklistItemContainer').innerHTML=''; window.populateMemberSelection(); document.getElementById('addProjectModal').style.display='flex';
@@ -1801,10 +1834,25 @@
              const c = document.getElementById('detailProjectChecklist'); c.innerHTML = '<h4>檢查點</h4>';
              try { JSON.parse(p['檢查點']||'[]').forEach(i => c.innerHTML+=`<div class="flex items-center gap-2"><input type="checkbox" disabled ${i.completed?'checked':''}><span class="${i.completed?'line-through text-gray-500':''}">${i.text}</span></div>`); } catch(e){}
              const edit = document.getElementById('editProjectBtn'); edit.style.display='inline-block'; edit.onclick=()=>window.openEditProjectModal(id);
-             const del = document.getElementById('deleteProjectBtn'); del.style.display='inline-block'; del.onclick=()=>{if(confirm('刪除?'))window.executeDeleteProject(id)};
+             const del = document.getElementById('deleteProjectBtn'); del.style.display='inline-block'; del.onclick=()=>window.openDeleteConfirmModal(id, 'project');
              document.getElementById('projectDetailModal').style.display='flex';
         }
-        window.executeDeleteProject = async (id) => { try { await sendData({action:'DELETE_PROJECT', sheetName:'團隊專案', id}); allProjectsData=allProjectsData.filter(x=>x.ID!==id); window.closeModal('projectDetailModal'); showToast('已刪除'); applyProjectFilters(); } catch(e){showToast('失敗');} }
+        window.executeDeleteProject = async (id) => { 
+            window.closeModal('deleteConfirmModal');
+            showToast('正在刪除...');
+            try { 
+                await sendData({action:'DELETE_PROJECT', sheetName:'團隊專案', id}); 
+                allProjectsData=allProjectsData.filter(x=>x.ID!==id); 
+                window.closeModal('projectDetailModal');
+                window.closeModal('addProjectModal');
+                showToast('已刪除'); 
+                applyProjectFilters();
+                if(currentView === 'welcome') renderWelcomePage();
+                else if(currentView === 'members') renderMembersPage();
+            } catch(e){
+                showToast('失敗');
+            } 
+        }
 
         window.openAddEventModal = function(date = '') {
             document.getElementById('addEventForm').reset();
@@ -1832,60 +1880,24 @@
             window.populateEventContacts(contacts);
             const del = document.getElementById('formDeleteEventBtn');
             del.style.display = 'inline-block';
-            del.onclick = () => { if(confirm('確定刪除此活動？')) window.executeDeleteEvent(id); };
+            del.onclick = () => window.openDeleteConfirmModal(id, 'event');
             document.getElementById('addEventModal').style.display = 'flex';
         }
         window.executeDeleteEvent = async function(id) {
-            try { await sendData({action:'DELETE_EVENT', sheetName:'團隊活動', id}); allEventsData = allEventsData.filter(x=>x.ID!==id); showToast('已刪除'); window.closeModal('addEventModal'); updateEventCalendar(); } catch(e) { showToast('刪除失敗'); }
-        }
-
-        window.openAddTodoModal = () => {
-            document.getElementById('addTodoForm').reset();
-            document.getElementById('editTodoId').value = '';
-            document.getElementById('todoModalTitle').textContent = '新增待辦事項';
-            window.populateTodoMemberSelects();
-            document.getElementById('formDeleteTodoBtn').style.display = 'none';
-            document.getElementById('addTodoModal').style.display = 'flex';
-        }
-
-        window.openEditTodoModal = (todoId) => {
-            const todo = allTodosData.find(t => t.ID === todoId);
-            if (!todo) { showToast('找不到待辦事項'); return; }
-            const form = document.getElementById('addTodoForm');
-            form.reset();
-            document.getElementById('todoModalTitle').textContent = '編輯待辦事項';
-            document.getElementById('editTodoId').value = todoId;
-            window.populateTodoMemberSelects(todo['負責人'], todo['指派人']);
-            document.getElementById('todoName').value = todo['事項'] || '';
-            document.getElementById('todoStatus').value = todo['狀態'] || '待辦';
-            document.getElementById('todoPriority').value = todo['優先級'] || '中';
-            document.getElementById('todoDueDate').value = toISODateString(todo['截止日期'] || '');
-            document.getElementById('todoNote').value = todo['備註'] || '';
-            const deleteBtn = document.getElementById('formDeleteTodoBtn');
-            deleteBtn.style.display = 'inline-block';
-            deleteBtn.onclick = () => window.openDeleteConfirmModal(todoId, 'todo');
-            document.getElementById('addTodoModal').style.display = 'flex';
-        }
-
-        window.populateTodoMemberSelects = (assigneeVal = '', assignerVal = '') => {
-            const assigneeSelect = document.getElementById('todoAssignee');
-            const assignerSelect = document.getElementById('todoAssigner');
-            let optionsHtml = '<option value="">請選擇...</option>';
-            if (allMembersData && allMembersData.length > 0) {
-                 const sorted = [...allMembersData].sort((a, b) => (a['排序'] || 99) - (b['排序'] || 99));
-                 sorted.forEach(member => {
-                     const name = member['姓名']?.trim();
-                     if (name) {
-                         optionsHtml += `<option value="${name}">${name}</option>`;
-                     }
-                 });
+            window.closeModal('deleteConfirmModal');
+            showToast('正在刪除...');
+            try { 
+                await sendData({action:'DELETE_EVENT', sheetName:'團隊活動', id}); 
+                allEventsData = allEventsData.filter(x=>x.ID!==id); 
+                window.closeModal('addEventModal'); 
+                showToast('已刪除'); 
+                if(currentView === 'events') updateEventCalendar(); 
+                else if(currentView === 'welcome') renderWelcomePage();
+            } catch(e) { 
+                showToast('刪除失敗'); 
             }
-            assigneeSelect.innerHTML = optionsHtml;
-            assignerSelect.innerHTML = optionsHtml;
-            assigneeSelect.value = assigneeVal;
-            assignerSelect.value = assignerVal;
         }
-
+        
         window.openDeleteConfirmModal = (id, type) => {
             const confirmBtn = document.getElementById('confirmDeleteBtn');
             if (type === 'project') {
@@ -1894,6 +1906,8 @@
                 confirmBtn.onclick = () => window.executeDeleteMonitoringItem(id);
             } else if (type === 'todo') {
                 confirmBtn.onclick = () => window.executeDeleteTodo(id);
+            } else if (type === 'event') {
+                confirmBtn.onclick = () => window.executeDeleteEvent(id);
             }
             document.getElementById('deleteConfirmModal').style.display = 'flex';
         }
@@ -1947,26 +1961,67 @@
             
             // Group members by job title
             const groupedMembers = {};
-            // Define sort order for roles
-            const sortOrder = ['醫師', '臨床心理師', '個管師', '社工', '研究助理', '其他'];
+            // Define desired sort order
+            const sortOrder = ['醫師', '酒癮計畫', '監所計畫', '藥癮整合計畫1', '藥癮整合計畫2', '美沙冬計畫', '院內', '其他'];
             
             allMembersData.forEach(member => {
-                const title = member['職稱'] || '其他';
-                if (!groupedMembers[title]) groupedMembers[title] = [];
-                groupedMembers[title].push(member);
+                let groupKey = '其他';
+                const title = (member['職稱'] || '').trim();
+                const businessType = (member['業務類別'] || '').trim(); // Ensure safe string access
+
+                if (title === '醫師') {
+                    groupKey = '醫師';
+                } else if (businessType) {
+                    groupKey = businessType;
+                } else {
+                    // Fallback to title or '其他' if businessType is missing
+                    groupKey = title || '其他';
+                }
+
+                if (!groupedMembers[groupKey]) groupedMembers[groupKey] = [];
+                groupedMembers[groupKey].push(member);
             });
             
+            // Generate HTML
             let html = `<h2 class="text-2xl font-bold text-gray-800 mb-6">團隊成員名錄</h2><div class="space-y-8">`;
             
+            // Sort keys
             const sortedTitles = Object.keys(groupedMembers).sort((a, b) => {
                 const idxA = sortOrder.indexOf(a);
                 const idxB = sortOrder.indexOf(b);
-                return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+                
+                // If both are in the sort list, compare indices
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                
+                // If one is in the list, it comes first
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
+                
+                // If neither is in the list, sort alphabetically
+                return a.localeCompare(b, 'zh-TW');
             });
+
+            if (sortedTitles.length === 0) {
+                html += `<div class="text-gray-500">目前沒有成員資料。</div>`;
+            }
             
             sortedTitles.forEach(title => {
-                const members = groupedMembers[title].sort((a, b) => (a['排序'] || 99) - (b['排序'] || 99));
-                const colorClass = jobTitleColors[title] || jobTitleColors['default'];
+                const members = groupedMembers[title].sort((a, b) => (parseInt(a['排序']) || 99) - (parseInt(b['排序']) || 99));
+                
+                // Determine color class based on group name
+                let colorClass = jobTitleColors[title] || 'job-color-default';
+                
+                // Fallback color logic for new business categories
+                if (colorClass === 'job-color-default') {
+                    if (title.includes('醫師')) colorClass = 'job-color-1';
+                    else if (title.includes('心理師')) colorClass = 'job-color-2';
+                    else if (title.includes('社工')) colorClass = 'job-color-5';
+                    else if (title.includes('個管')) colorClass = 'job-color-3';
+                    else if (title.includes('酒癮')) colorClass = 'job-color-2'; 
+                    else if (title.includes('監所')) colorClass = 'job-color-3';
+                    else if (title.includes('藥癮')) colorClass = 'job-color-4';
+                    else if (title.includes('美沙冬')) colorClass = 'job-color-5';
+                }
                 
                 html += `
                     <div>
@@ -1980,18 +2035,24 @@
                 `;
                 
                 members.forEach(member => {
-                    const activeProjects = allProjectsData.filter(p => 
-                        p['狀態'] === '進行中' && 
-                        ((p['主要負責'] || '').includes(member['姓名']) || 
-                        (p['協同負責'] || '').includes(member['姓名']))
-                    );
+                    const memberName = member['姓名'] || '';
+                    // Find active projects for this member (using corrected status check)
+                    const activeProjects = allProjectsData.filter(p => {
+                        const s = getCalculatedProjectStatus(p);
+                        return !s.isCompleted && 
+                        ((p['主要負責'] || '').includes(memberName) || 
+                        (p['協同負責'] || '').includes(memberName));
+                    });
+
+                    const note = member['備註'] || '暫無備註';
+                    const jobTitle = member['職稱'] || '';
                     
                     html += `
                         <div class="bg-white rounded-xl shadow-md p-5 border-l-4 ${colorClass} hover:shadow-lg transition-all transform hover:-translate-y-1">
                             <div class="flex justify-between items-center mb-3">
                                 <div>
-                                    <h4 class="text-lg font-bold text-gray-900">${member['姓名']}</h4>
-                                    <p class="text-xs text-gray-500 font-medium">${member['職稱']}</p>
+                                    <h4 class="text-lg font-bold text-gray-900">${memberName}</h4>
+                                    <p class="text-xs text-gray-500 font-medium">${jobTitle}</p>
                                 </div>
                             </div>
                             
@@ -2006,8 +2067,8 @@
                             </div>
 
                             <div class="pt-3 border-t border-gray-50">
-                                <p class="text-xs text-gray-400 line-clamp-2">
-                                    ${member['備註'] ? member['備註'] : '<span class="italic opacity-50">暫無備註</span>'}
+                                <p class="text-xs text-gray-400 line-clamp-2" title="${note}">
+                                    ${note === '暫無備註' ? '<span class="italic opacity-50">暫無備註</span>' : note}
                                 </p>
                             </div>
                         </div>
