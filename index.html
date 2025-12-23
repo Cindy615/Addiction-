@@ -306,6 +306,7 @@
         .event-type-meeting { background-color: #90B44B; } 
         .event-type-course { background-color: #E2943B; } 
         .event-type-supervision { background-color: #0089A7; }
+        .event-type-dr-chang { background-color: #D75455; } /* 新增張醫師專用顏色 */
         .event-type-other { background-color: #8B81C3; } 
         
         /* Monitoring Badges */
@@ -431,23 +432,41 @@
                         <option value="會議">會議 (綠色系)</option>
                         <option value="課程">課程 (橘色系)</option>
                         <option value="督導">督導 (藍綠色系)</option>
+                        <option value="張醫師">張醫師 (紅色系)</option> <!-- 新增選項 -->
                         <option value="其他">其他 (紫色系)</option>
                      </select>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                        <label for="eventDate" class="block text-sm font-medium">日期 (必填)</label>
-                        <input type="date" id="eventDate" required class="mt-1 block w-full input">
+                
+                <!-- 新增全天勾選與日期時間區域 -->
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="eventAllDay" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="eventAllDay" class="ml-2 block text-sm font-bold text-gray-700">全天活動</label>
                     </div>
-                    <div>
-                        <label for="eventStartTime" class="block text-sm font-medium">開始時間</label>
-                        <input type="time" id="eventStartTime" class="mt-1 block w-full input">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="eventStartDate" class="block text-sm font-medium">開始日期 (必填)</label>
+                            <input type="date" id="eventStartDate" required class="mt-1 block w-full input">
+                        </div>
+                        <div>
+                            <label for="eventEndDate" class="block text-sm font-medium">結束日期 (必填)</label>
+                            <input type="date" id="eventEndDate" required class="mt-1 block w-full input">
+                        </div>
                     </div>
-                    <div>
-                        <label for="eventEndTime" class="block text-sm font-medium">結束時間</label>
-                        <input type="time" id="eventEndTime" class="mt-1 block w-full input">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 transition-all duration-300" id="timeInputsContainer">
+                        <div>
+                            <label for="eventStartTime" class="block text-sm font-medium">開始時間</label>
+                            <input type="time" id="eventStartTime" class="mt-1 block w-full input">
+                        </div>
+                        <div>
+                            <label for="eventEndTime" class="block text-sm font-medium">結束時間</label>
+                            <input type="time" id="eventEndTime" class="mt-1 block w-full input">
+                        </div>
                     </div>
                 </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="eventOrganizer" class="block text-sm font-medium">主辦單位</label>
@@ -463,7 +482,7 @@
                     </div>
                     <div>
                         <label for="eventContact" class="block text-sm font-medium">聯絡人 (可複選)</label>
-                        <div id="eventContactSelection" class="mt-1 h-32 overflow-y-auto p-2 border rounded-md bg-gray-50 space-y-2">
+                        <div id="eventContactSelection" class="mt-1 h-32 overflow-y-auto p-2 border rounded-md bg-white space-y-2">
                         </div>
                     </div>
                 </div>
@@ -542,6 +561,7 @@
             '會議': { bg: 'event-type-meeting', hex: '#90B44B' },  
             '課程': { bg: 'event-type-course', hex: '#E2943B' },
             '督導': { bg: 'event-type-supervision', hex: '#0089A7' },
+            '張醫師': { bg: 'event-type-dr-chang', hex: '#D75455' }, // 新增配置
             '其他': { bg: 'event-type-other', hex: '#8B81C3' },    
             'default': { bg: 'event-type-other', hex: '#8B81C3' } 
         };
@@ -632,8 +652,8 @@
             const today = new Date(); today.setHours(0,0,0,0);
             const nextWeek = new Date(today); nextWeek.setDate(today.getDate() + 7);
             const upcomingEventsCount = allEventsData.filter(e => {
-                if (!e['日期']) return false;
-                const d = new Date(e['日期'].split('T')[0] + 'T00:00:00');
+                if (!e['開始日期']) return false;
+                const d = new Date(e['開始日期'].split('T')[0] + 'T00:00:00');
                 return d >= today && d <= nextWeek;
             }).length;
 
@@ -718,19 +738,23 @@
         function renderWelcomeMiniEvents() {
             const today = new Date(); today.setHours(0,0,0,0);
             const events = allEventsData.filter(e => {
-                if (!e['日期']) return false;
-                const d = new Date(e['日期'].split('T')[0] + 'T00:00:00');
+                if (!e['開始日期']) return false;
+                const d = new Date(e['開始日期'].split('T')[0] + 'T00:00:00');
                 return d >= today;
-            }).sort((a,b) => new Date(a['日期']) - new Date(b['日期'])).slice(0, 5);
+            }).sort((a,b) => new Date(a['開始日期']) - new Date(b['開始日期'])).slice(0, 5);
 
             if (events.length === 0) return '<p class="text-sm text-gray-400 text-center py-4">近期無活動</p>';
 
             return events.map(e => {
-                const d = new Date(e['日期'].split('T')[0] + 'T00:00:00');
+                const d = new Date(e['開始日期'].split('T')[0] + 'T00:00:00');
                 const isToday = d.getTime() === today.getTime();
                 const type = e['類型'] || '其他';
                 const colorHex = eventTypeConfig[type] ? eventTypeConfig[type].hex : '#999';
                 
+                // 判斷是否為全天
+                const isAllDay = (e['全天'] === 'TRUE' || e['全天'] === true);
+                let timeDisplay = isAllDay ? '全天' : formatTime(e['開始時間']);
+
                 return `
                 <div class="flex gap-3 items-start group cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onclick='window.showEventEditFromIOS(${JSON.stringify(e).replace(/'/g, "&#39;")})'>
                     <div class="flex flex-col items-center min-w-[3rem] bg-gray-50 rounded border border-gray-100 p-1">
@@ -741,7 +765,7 @@
                         <p class="text-sm font-bold text-gray-800 truncate">${e['活動名稱']}</p>
                         <div class="flex items-center gap-2 mt-0.5">
                             <span class="w-2 h-2 rounded-full" style="background-color: ${colorHex}"></span>
-                            <span class="text-xs text-gray-500">${formatTime(e['開始時間'])}</span>
+                            <span class="text-xs text-gray-500">${timeDisplay}</span>
                         </div>
                     </div>
                 </div>
@@ -993,6 +1017,7 @@
                     <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-1" style="background-color: #90B44B;"></span> 會議</div>
                     <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-1" style="background-color: #E2943B;"></span> 課程</div>
                     <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-1" style="background-color: #0089A7;"></span> 督導</div>
+                    <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-1" style="background-color: #D75455;"></span> 張醫師</div> <!-- 新增標示 -->
                     <div class="flex items-center"><span class="w-3 h-3 rounded-full mr-1" style="background-color: #8B81C3;"></span> 其他</div>
                 </div>
                 <div class="calendar-grid mb-2 hidden md:grid">
@@ -1032,12 +1057,23 @@
 
             for (let day = 1; day <= daysInMonth; day++) {
                 const isoDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const events = allEventsData.filter(e => e['日期'] && e['日期'].startsWith(isoDate));
+                
+                // 修正：檢查活動是否涵蓋此日期（跨日活動）
+                const events = allEventsData.filter(e => {
+                    if (!e['開始日期']) return false;
+                    
+                    const eventStart = new Date(e['開始日期'].split('T')[0] + 'T00:00:00').getTime();
+                    // 若無結束日期，則預設為開始日期（單日活動）
+                    const endStr = e['結束日期'] ? e['結束日期'].split('T')[0] : e['開始日期'].split('T')[0];
+                    const eventEnd = new Date(endStr + 'T00:00:00').getTime();
+                    const current = new Date(isoDate + 'T00:00:00').getTime();
+
+                    return current >= eventStart && current <= eventEnd;
+                });
                 
                 const badges = events.slice(0, 3).map(e => {
                     const type = e['類型'] || '其他';
                     const colorClass = eventTypeConfig[type] ? eventTypeConfig[type].bg : eventTypeConfig['default'].bg;
-                    // 變更: 移除時間顯示，只保留活動名稱
                     return `<span class="event-badge truncate ${colorClass}">${e['活動名稱']}</span>`;
                 }).join('');
                 
@@ -1062,7 +1098,18 @@
             document.getElementById('iosEventDateTitle').textContent = formatLongDate(isoDate);
             document.getElementById('iosEventWeekday').textContent = getWeekdayName(isoDate);
             
-            const events = allEventsData.filter(e => e['日期'] && e['日期'].startsWith(isoDate)).sort((a,b) => (a['開始時間']||'').localeCompare(b['開始時間']||''));
+            // 修正：詳細清單也要包含跨日活動
+            const events = allEventsData.filter(e => {
+                 if (!e['開始日期']) return false;
+                 
+                 const eventStart = new Date(e['開始日期'].split('T')[0] + 'T00:00:00').getTime();
+                 const endStr = e['結束日期'] ? e['結束日期'].split('T')[0] : e['開始日期'].split('T')[0];
+                 const eventEnd = new Date(endStr + 'T00:00:00').getTime();
+                 const current = new Date(isoDate + 'T00:00:00').getTime();
+
+                 return current >= eventStart && current <= eventEnd;
+            }).sort((a,b) => (a['開始時間']||'').localeCompare(b['開始時間']||''));
+
             const listContainer = document.getElementById('iosEventList');
             if (events.length === 0) {
                 listContainer.innerHTML = `<div class="ios-empty-state"><p>沒有預定</p></div>`;
@@ -1071,19 +1118,28 @@
                     const eventJson = JSON.stringify(e).replace(/'/g, '&#39;');
                     const type = e['類型'] || '其他';
                     const colorHex = eventTypeConfig[type] ? eventTypeConfig[type].hex : eventTypeConfig['default'].hex;
-                    const startT = formatTime(e['開始時間']) || '--:--';
-                    const endT = formatTime(e['結束時間']) || '--:--';
+                    
+                    const isAllDay = e['全天'] === 'TRUE' || e['全天'] === true;
+                    const startT = isAllDay ? '' : (formatTime(e['開始時間']) || '--:--');
+                    const endT = isAllDay ? '' : (formatTime(e['結束時間']) || '--:--');
+                    
+                    // 顯示日期範圍 (若結束日期不同)
+                    let dateDisplay = '';
+                    if (e['結束日期'] && e['結束日期'] !== e['開始日期']) {
+                        const endDate = new Date(e['結束日期']);
+                        dateDisplay = `<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded ml-2">~ ${endDate.getMonth()+1}/${endDate.getDate()}</span>`;
+                    }
                     
                     return `
                     <div class="mb-4 pb-4 border-b border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors flex gap-3" onclick='window.showEventEditFromIOS(${eventJson})'>
                         <div style="width: 4px; background-color: ${colorHex}; border-radius: 2px;"></div>
                         <div class="flex-1">
                             <div class="flex items-center justify-between mb-1">
-                                <h4 class="font-bold text-gray-900 text-lg">${e['活動名稱']}</h4>
+                                <h4 class="font-bold text-gray-900 text-lg flex items-center">${e['活動名稱']} ${dateDisplay}</h4>
                                 <span class="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded-full">${type}</span>
                             </div>
                             <div class="text-gray-500 text-sm flex gap-4">
-                                <span>🕒 ${startT} - ${endT}</span>
+                                <span>🕒 ${isAllDay ? '全天' : `${startT} - ${endT}`}</span>
                             </div>
                             ${e['主辦單位'] ? `<div class="text-gray-400 text-xs mt-1">👤 ${e['主辦單位']}</div>` : ''}
                         </div>
@@ -1433,13 +1489,20 @@
                 e.preventDefault();
                 const btn = this.querySelector('button[type="submit"]'); btn.disabled=true; btn.textContent='儲存中...';
                 const id = document.getElementById('editEventId').value;
+                const isAllDay = document.getElementById('eventAllDay').checked;
+                
                 const data = {
                     'ID': id || `evt_${Date.now()}`,
                     '活動名稱': document.getElementById('eventName').value,
                     '類型': document.getElementById('eventType').value,
-                    '日期': document.getElementById('eventDate').value,
-                    '開始時間': document.getElementById('eventStartTime').value,
-                    '結束時間': document.getElementById('eventEndTime').value,
+                    // 改用開始日期與結束日期
+                    '開始日期': document.getElementById('eventStartDate').value,
+                    '結束日期': document.getElementById('eventEndDate').value,
+                    // 處理全天
+                    '全天': isAllDay ? 'TRUE' : 'FALSE',
+                    '開始時間': isAllDay ? '' : document.getElementById('eventStartTime').value,
+                    '結束時間': isAllDay ? '' : document.getElementById('eventEndTime').value,
+                    
                     '主辦單位': document.getElementById('eventOrganizer').value,
                     '聯絡人': Array.from(document.querySelectorAll('#eventContactSelection input:checked')).map(c=>c.value).join(', '),
                     '備註': document.getElementById('eventNote').value,
@@ -1455,6 +1518,24 @@
                     
                     window.closeModal('addEventModal');
                 } catch(e) { showToast('失敗: '+e.message); } finally { btn.disabled=false; btn.textContent='儲存'; }
+            });
+            
+            // Wiring for Event Form
+            document.getElementById('eventStartDate').addEventListener('change', function() {
+                // 自動帶入結束日期
+                const end = document.getElementById('eventEndDate');
+                if(!end.value) end.value = this.value;
+            });
+            
+            document.getElementById('eventAllDay').addEventListener('change', function() {
+                const timeContainer = document.getElementById('timeInputsContainer');
+                if (this.checked) {
+                    timeContainer.classList.add('opacity-50', 'pointer-events-none');
+                    document.getElementById('eventStartTime').value = '';
+                    document.getElementById('eventEndTime').value = '';
+                } else {
+                    timeContainer.classList.remove('opacity-50', 'pointer-events-none');
+                }
             });
             
             // Monitoring
@@ -1618,247 +1699,78 @@
         // Aliased function for filtering
         function filterAndRenderCases(term, type) { filterCases(type); }
         
-        window.updateMonitoringView = () => { 
-            const pageContainer = document.getElementById('pageContainer');
-            const now = new Date();
-            const yearOpts = Array.from({length:5},(_,i)=>now.getFullYear()-2+i).map(y=>`<option value="${y}" ${y===now.getFullYear()?'selected':''}>${y} 年</option>`).join('');
-            const monthOpts = Array.from({length:12},(_,i)=>i+1).map(m=>`<option value="${m}" ${m===now.getMonth()+1?'selected':''}>${m} 月</option>`).join('');
-            
-            pageContainer.innerHTML = `
-                <div id="monitoringFilters" class="flex flex-col md:flex-row gap-4 mb-4">
-                    <div class="flex gap-2 flex-wrap">
-                        <button data-filter="all" class="monitoring-filter-btn filter-btn filter-btn-active">全部門診</button>
-                        <button data-filter="Y798" class="monitoring-filter-btn filter-btn filter-btn-inactive">Y798酒癮(樹林)</button>
-                        <button data-filter="Y795" class="monitoring-filter-btn filter-btn filter-btn-inactive">Y795藥癮(樹林)</button>
-                        <button data-filter="779W" class="monitoring-filter-btn filter-btn filter-btn-inactive">779W酒癮(總院)</button>
-                        <button data-filter="7790" class="monitoring-filter-btn filter-btn filter-btn-inactive">7790精神科(總院)</button>
-                        <button data-filter="7791" class="monitoring-filter-btn filter-btn filter-btn-inactive">7791精神科(樹林)</button>
-                        <button data-filter="779M" class="monitoring-filter-btn filter-btn filter-btn-inactive">779M美沙冬</button>
-                    </div>
-                    <div class="flex gap-2 ml-auto items-center">
-                        <button id="prevMonthBtn" class="btn btn-secondary px-3" title="上個月">&lt;</button>
-                        <select id="monitoringYearFilterSelect" class="monitoring-filter-select select-filter">${yearOpts}</select>
-                        <select id="monitoringMonthFilterSelect" class="monitoring-filter-select select-filter">${monthOpts}</select>
-                        <button id="nextMonthBtn" class="btn btn-secondary px-3" title="下個月">&gt;</button>
-                    </div>
-                </div>
-                
-                <div id="monitoringCalendarHeader" class="calendar-grid mb-2 hidden md:grid">
-                    ${['一','二','三','四','五','六','日'].map(d=>`<div class="calendar-day-header">${d}</div>`).join('')}
-                </div>
-                <div id="monitoringCalendar" class="calendar-grid"></div>
-
-                <div class="mt-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm inline-block min-w-[300px]">
-                    <h4 class="font-bold text-gray-800 mb-3 text-sm border-b pb-2">門診掛號人數壅塞程度分類：</h4>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <div class="flex items-center"><span class="badge badge-level-1 w-6 h-6 mr-2 !m-0"></span><span class="text-gray-600">綠色（正常）：0–5 人</span></div>
-                        <div class="flex items-center"><span class="badge badge-level-2 w-6 h-6 mr-2 !m-0"></span><span class="text-gray-600">黃色（稍多）：6–10 人</span></div>
-                        <div class="flex items-center"><span class="badge badge-level-3 w-6 h-6 mr-2 !m-0"></span><span class="text-gray-600">紅色（壅塞）：11–15 人</span></div>
-                        <div class="flex items-center"><span class="badge badge-level-4 w-6 h-6 mr-2 !m-0"></span><span class="text-gray-600">深紅色（極度壅塞）：16 人以上</span></div>
-                    </div>
-                </div>
-
-                <button id="addMonitoringItemBtn" onclick="window.openAddMonitoringModal()" class="fixed bottom-12 right-12 w-16 h-16 rounded-full flex items-center justify-center text-4xl shadow-lg transition-all btn-floating">+</button>
-            `;
-            
-            document.querySelectorAll('.monitoring-filter-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.monitoring-filter-btn').forEach(b => b.classList.replace('filter-btn-active', 'filter-btn-inactive'));
-                    btn.classList.replace('filter-btn-inactive', 'filter-btn-active');
-                    applyMonitoringFilters();
+        // ============================================
+        //  TODO MODAL FUNCTIONS (FIX)
+        // ============================================
+        window.populateTodoMembers = () => {
+            const assignerSel = document.getElementById('todoAssigner');
+            const assigneeSel = document.getElementById('todoAssignee');
+            const defaultOpt = '<option value="">請選擇...</option>';
+            let opts = '';
+            if (allMembersData && allMembersData.length > 0) {
+                // Ensure unique names
+                const uniqueNames = [...new Set(allMembersData.map(m => m['姓名']).filter(n=>n))];
+                uniqueNames.sort().forEach(name => {
+                    opts += `<option value="${name}">${name}</option>`;
                 });
-            });
-            document.querySelectorAll('.monitoring-filter-select').forEach(s => s.addEventListener('change', applyMonitoringFilters));
-            document.getElementById('prevMonthBtn').addEventListener('click', () => changeMonitoringMonth(-1));
-            document.getElementById('nextMonthBtn').addEventListener('click', () => changeMonitoringMonth(1));
-            
-            applyMonitoringFilters();
-        }
-
-        window.changeMonitoringMonth = (offset) => {
-            const yearSelect = document.getElementById('monitoringYearFilterSelect');
-            const monthSelect = document.getElementById('monitoringMonthFilterSelect');
-            const newDate = new Date(parseInt(yearSelect.value), parseInt(monthSelect.value) - 1 + offset, 1);
-            
-            yearSelect.value = newDate.getFullYear();
-            monthSelect.value = newDate.getMonth() + 1;
-            applyMonitoringFilters();
-        }
-
-        window.applyMonitoringFilters = () => {
-            const clinicFilter = document.querySelector('.monitoring-filter-btn.filter-btn-active').dataset.filter;
-            const year = parseInt(document.getElementById('monitoringYearFilterSelect').value);
-            const month = parseInt(document.getElementById('monitoringMonthFilterSelect').value);
-            
-            let filteredData = allMonitoringData;
-            if (clinicFilter !== 'all') {
-                filteredData = filteredData.filter(item => item['門診'] && item['門診'].startsWith(clinicFilter));
             }
+            assignerSel.innerHTML = defaultOpt + opts;
+            assigneeSel.innerHTML = defaultOpt + opts;
+        }
+
+        window.openAddTodoModal = () => {
+            document.getElementById('addTodoForm').reset();
+            document.getElementById('editTodoId').value = '';
+            document.getElementById('todoModalTitle').textContent = '新增待辦事項';
             
-            renderMonitoringCalendar(year, month, filteredData);
-        }
-
-        window.renderMonitoringCalendar = (year, month, data) => {
-            const container = document.getElementById('monitoringCalendar');
-            container.innerHTML = '';
+            window.populateTodoMembers();
             
-            let firstDay = new Date(year, month - 1, 1).getDay(); firstDay = (firstDay === 0) ? 6 : (firstDay - 1);
-            const daysInMonth = new Date(year, month, 0).getDate();
-
-            for (let i = 0; i < firstDay; i++) container.innerHTML += `<div class="calendar-day-empty hidden md:block"></div>`;
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const isoDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                
-                const itemsForThisDay = data.filter(item => item['日期'] && item['日期'].startsWith(isoDate));
-
-                let dailyTotal = 0;
-                itemsForThisDay.forEach(item => {
-                    if (item['是否停診'] !== '是') {
-                        dailyTotal += parseInt(item['已掛號人數'] || 0, 10);
-                    }
-                });
-
-                const badgesHtml = itemsForThisDay.map(item => {
-                    const registered = parseInt(item['已掛號人數'] || 0, 10);
-                    let badgeClass = '';
-                    if (item['是否停診'] === '是') badgeClass = 'badge-closed';
-                    else if (registered >= 16) badgeClass = 'badge-level-4';
-                    else if (registered >= 11) badgeClass = 'badge-level-3';
-                    else if (registered >= 6) badgeClass = 'badge-level-2';
-                    else badgeClass = 'badge-level-1';
-
-                    let badgeText = '診';
-                    if (item['是否停診'] === '是') badgeText = '停';
-                    else if (item['門診'].includes('酒')) badgeText = '酒';
-                    else if (item['門診'].includes('藥')) badgeText = '藥';
-                    else if (item['門診'].includes('精神')) badgeText = '精';
-                    
-                    return `<span class="badge ${badgeClass}">${badgeText}</span>`;
-                }).join('');
-                
-                const totalDisplay = dailyTotal > 0 
-                    ? `<span class="text-xs font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded ml-1">${dailyTotal}人</span>` 
-                    : '';
-                
-                container.innerHTML += `
-                    <div class="calendar-day">
-                        <div class="day-content" onclick="window.showMonitoringDetailsForDay('${isoDate}')">
-                            <div class="flex justify-between items-start mb-1">
-                                <span class="day-number">${day}</span>
-                                ${totalDisplay}
-                            </div>
-                            <div class="badge-container">${badgesHtml}</div>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        window.showMonitoringDetailsForDay = (isoDate) => {
-            const modal = document.getElementById('monitoringDayDetailModal');
-            document.getElementById('monitoringDayDetailTitle').textContent = `${formatSimpleDate(isoDate)} 門診詳情`;
-            const content = document.getElementById('monitoringDayDetailContent');
+            // Set default date to today
+            document.getElementById('todoDueDate').value = toISODateString(new Date().toISOString());
             
-            const items = allMonitoringData.filter(i => i['日期'] && i['日期'].startsWith(isoDate)).sort((a,b)=>(a['門診']||'').localeCompare(b['門診']));
-            
-            if(items.length === 0) { content.innerHTML = '<p class="text-gray-500">無門診資料</p>'; }
-            else {
-                content.innerHTML = items.map(item => {
-                    const isClosed = item['是否停診'] === '是';
-                    const reg = parseInt(item['已掛號人數'] || 0);
-                    let border = isClosed ? 'monitor-border-closed' : (reg>=16?'monitor-border-level-4':(reg>=11?'monitor-border-level-3':(reg>=6?'monitor-border-level-2':'monitor-border-level-1')));
-                    return `
-                    <div class="bg-white ${border} rounded-xl shadow-lg p-6 mb-4 cursor-pointer border border-gray-200 hover:shadow-xl transition-shadow" onclick="window.closeModal('monitoringDayDetailModal');window.openEditMonitoringModal('${item.ID}')">
-                        <div class="flex justify-between items-start gap-2 mb-2"><h3 class="text-xl font-bold text-link-title flex items-center gap-2">${item['門診']} <span class="text-xs text-blue-500">✏️</span></h3></div>
-                        ${isClosed ? `<div class="text-center p-2"><p class="text-xl font-bold text-gray-500">本日停診</p></div>` : 
-                        `<div class="grid grid-cols-2 gap-4 text-center"><div><p class="text-2xl font-bold text-gray-800">${reg}</p><p class="text-xs text-gray-500">已掛號</p></div><div><p class="text-2xl font-bold text-gray-800">${item['新案']||0}</p><p class="text-xs text-gray-500">新案</p></div></div>`}
-                    </div>`;
-                }).join('');
-            }
-            modal.style.display = 'flex';
+            document.getElementById('formDeleteTodoBtn').style.display = 'none';
+            document.getElementById('addTodoModal').style.display = 'flex';
         }
 
-        window.openAddMonitoringModal = () => { document.getElementById('addMonitoringForm').reset(); document.getElementById('editMonitoringId').value=''; document.getElementById('monitoringModalTitle').textContent='新增門診項目'; document.getElementById('monitoringIsClosed').checked=false; document.getElementById('monitoringRegisteredCount').disabled=false; document.getElementById('monitoringNewCases').disabled=false; document.getElementById('formDeleteMonitoringBtn').style.display='none'; document.getElementById('addMonitoringModal').style.display='flex'; }
-        
-        window.openEditMonitoringModal = (id) => {
-            const item = allMonitoringData.find(m=>m.ID===id); if(!item)return;
-            document.getElementById('addMonitoringForm').reset(); document.getElementById('editMonitoringId').value=id; document.getElementById('monitoringModalTitle').textContent='編輯門診項目';
-            document.getElementById('monitoringItemName').value = item['門診']; document.getElementById('monitoringDate').value = toISODateString(item['日期']); document.getElementById('monitoringRegisteredCount').value = item['已掛號人數']; document.getElementById('monitoringNewCases').value = item['新案'];
-            const isClosed = item['是否停診']==='是';
-            document.getElementById('monitoringIsClosed').checked = isClosed;
-            document.getElementById('monitoringRegisteredCount').disabled = isClosed; document.getElementById('monitoringNewCases').disabled = isClosed;
+        window.openEditTodoModal = (id) => {
+            const t = allTodosData.find(x => x.ID === id);
+            if (!t) return;
             
-            const del = document.getElementById('formDeleteMonitoringBtn'); del.style.display='inline-block'; del.onclick=()=>window.openDeleteConfirmModal(id, 'monitoring');
-            document.getElementById('addMonitoringModal').style.display='flex';
-        }
-        
-        window.executeDeleteMonitoringItem = async (id) => { 
-            window.closeModal('deleteConfirmModal');
-            showToast('正在刪除...');
-            try { 
-                await sendData({action:'DELETE_MONITORING_ITEM', sheetName:'門診監測', id}); 
-                allMonitoringData=allMonitoringData.filter(m=>m.ID!==id); 
-                window.closeModal('addMonitoringModal'); 
-                window.closeModal('monitoringDayDetailModal');
-                showToast('已刪除'); 
-                if(currentView === 'monitoring') updateMonitoringView();
-                else if(currentView === 'welcome') renderWelcomePage();
-            } catch(e){
-                showToast('失敗');
-            } 
-        }
-
-        window.openAddProjectModal = () => {
-            document.getElementById('addProjectForm').reset(); document.getElementById('editProjectId').value=''; document.getElementById('projectModalTitle').textContent='新增項目'; document.getElementById('checklistItemContainer').innerHTML=''; window.populateMemberSelection(); document.getElementById('addProjectModal').style.display='flex';
-        }
-        window.openEditProjectModal = (id) => {
-            const p = allProjectsData.find(x=>x.ID===id); if(!p)return;
-            document.getElementById('addProjectForm').reset(); document.getElementById('editProjectId').value=id; document.getElementById('projectModalTitle').textContent='編輯項目';
-            document.getElementById('projectName').value = p['專案名稱']; document.getElementById('projectGroup').value = p['所屬小組']; document.getElementById('projectType').value = p['任務類型']; document.getElementById('projectDescription').value = p['備註']; document.getElementById('projectStatus').value = p['狀態']; document.getElementById('projectPriority').value = p['優先級']; document.getElementById('startDate').value = toISODateString(p['開始日期']); document.getElementById('endDate').value = toISODateString(p['截止日期']);
-            window.populateMemberSelection((p['主要負責']||'').split(', '),(p['協同負責']||'').split(', '));
-            const c = document.getElementById('checklistItemContainer'); c.innerHTML='';
-            try { JSON.parse(p['檢查點']||'[]').forEach(addChecklistItemToForm); } catch(e){}
-            document.getElementById('addProjectModal').style.display='flex';
-        }
-        window.populateMemberSelection = (leads=[], teams=[]) => {
-            const l=document.getElementById('projectLeadSelection'), t=document.getElementById('projectTeamSelection'); l.innerHTML=t.innerHTML='';
-            allMembersData.forEach(m=>{ const n=m['姓名']; l.innerHTML+=`<div><input type="checkbox" value="${n}" ${leads.includes(n)?'checked':''}><span class="ml-2">${n}</span></div>`; t.innerHTML+=`<div><input type="checkbox" value="${n}" ${teams.includes(n)?'checked':''}><span class="ml-2">${n}</span></div>`; });
-        }
-        window.showProjectDetails = (id) => {
-             const p = allProjectsData.find(x=>x.ID===id); if(!p) return;
-             document.getElementById('detailProjectName').textContent = p['專案名稱'];
-             const s = getCalculatedProjectStatus(p);
-             document.getElementById('detailProjectProgress').innerHTML = `<div class="flex justify-between mb-1 text-sm text-gray-700"><span>完成進度</span><span>${Math.round(s.progress)}%</span></div><div class="w-full bg-gray-200 h-4 rounded-full"><div class="bg-blue-600 h-4 rounded-full" style="width:${s.progress}%"></div></div>`;
-             document.getElementById('projectDetailContent').innerHTML = `<p>狀態: ${p['狀態']}</p><p>日期: ${formatSimpleDate(p['開始日期'])} - ${formatSimpleDate(p['截止日期'])}</p><p>負責: ${p['主要負責']}</p><p>備註: ${p['備註']||'無'}</p>`;
-             const c = document.getElementById('detailProjectChecklist'); c.innerHTML = '<h4>檢查點</h4>';
-             try { JSON.parse(p['檢查點']||'[]').forEach(i => c.innerHTML+=`<div class="flex items-center gap-2"><input type="checkbox" disabled ${i.completed?'checked':''}><span class="${i.completed?'line-through text-gray-500':''}">${i.text}</span></div>`); } catch(e){}
-             const edit = document.getElementById('editProjectBtn'); edit.style.display='inline-block'; edit.onclick=()=>window.openEditProjectModal(id);
-             const del = document.getElementById('deleteProjectBtn'); del.style.display='inline-block'; del.onclick=()=>window.openDeleteConfirmModal(id, 'project');
-             document.getElementById('projectDetailModal').style.display='flex';
-        }
-        window.executeDeleteProject = async (id) => { 
-            window.closeModal('deleteConfirmModal');
-            showToast('正在刪除...');
-            try { 
-                await sendData({action:'DELETE_PROJECT', sheetName:'團隊專案', id}); 
-                allProjectsData=allProjectsData.filter(x=>x.ID!==id); 
-                window.closeModal('projectDetailModal');
-                window.closeModal('addProjectModal');
-                showToast('已刪除'); 
-                applyProjectFilters();
-                if(currentView === 'welcome') renderWelcomePage();
-                else if(currentView === 'members') renderMembersPage();
-            } catch(e){
-                showToast('失敗');
-            } 
+            document.getElementById('addTodoForm').reset();
+            document.getElementById('editTodoId').value = id;
+            document.getElementById('todoModalTitle').textContent = '編輯待辦事項';
+            
+            window.populateTodoMembers();
+            
+            document.getElementById('todoName').value = t['事項'];
+            document.getElementById('todoStatus').value = t['狀態'];
+            document.getElementById('todoPriority').value = t['優先級'];
+            document.getElementById('todoAssigner').value = t['指派人'] || '';
+            document.getElementById('todoAssignee').value = t['負責人'] || '';
+            document.getElementById('todoDueDate').value = toISODateString(t['截止日期']);
+            document.getElementById('todoNote').value = t['備註'] || '';
+            
+            const del = document.getElementById('formDeleteTodoBtn');
+            del.style.display = 'inline-block';
+            del.onclick = () => window.openDeleteConfirmModal(id, 'todo');
+            
+            document.getElementById('addTodoModal').style.display = 'flex';
         }
 
         window.openAddEventModal = function(date = '') {
             document.getElementById('addEventForm').reset();
             document.getElementById('editEventId').value = '';
             document.getElementById('eventModalTitle').textContent = '新增活動';
-            document.getElementById('eventDate').value = date || toISODateString(new Date().toISOString());
+            
+            // 預設日期處理
+            const todayStr = toISODateString(new Date().toISOString());
+            document.getElementById('eventStartDate').value = date || todayStr;
+            document.getElementById('eventEndDate').value = date || todayStr;
+            
+            // 重置全天開關
+            document.getElementById('eventAllDay').checked = false;
+            document.getElementById('timeInputsContainer').classList.remove('opacity-50', 'pointer-events-none');
+            
             window.populateEventContacts([]);
             document.getElementById('formDeleteEventBtn').style.display = 'none';
             document.getElementById('addEventModal').style.display = 'flex';
@@ -1870,9 +1782,24 @@
             document.getElementById('eventModalTitle').textContent = '編輯活動';
             document.getElementById('eventName').value = e['活動名稱'];
             document.getElementById('eventType').value = e['類型'] || '活動';
-            document.getElementById('eventDate').value = toISODateString(e['日期']);
-            document.getElementById('eventStartTime').value = formatTime(e['開始時間']) || '';
-            document.getElementById('eventEndTime').value = formatTime(e['結束時間']) || '';
+            
+            // 更新：日期處理
+            document.getElementById('eventStartDate').value = toISODateString(e['開始日期']);
+            document.getElementById('eventEndDate').value = toISODateString(e['結束日期'] || e['開始日期']);
+            
+            // 更新：全天處理
+            const isAllDay = e['全天'] === 'TRUE' || e['全天'] === true;
+            document.getElementById('eventAllDay').checked = isAllDay;
+            const timeContainer = document.getElementById('timeInputsContainer');
+            if (isAllDay) {
+                timeContainer.classList.add('opacity-50', 'pointer-events-none');
+                document.getElementById('eventStartTime').value = '';
+                document.getElementById('eventEndTime').value = '';
+            } else {
+                timeContainer.classList.remove('opacity-50', 'pointer-events-none');
+                document.getElementById('eventStartTime').value = formatTime(e['開始時間']) || '';
+                document.getElementById('eventEndTime').value = formatTime(e['結束時間']) || '';
+            }
             
             document.getElementById('eventOrganizer').value = e['主辦單位'] || '';
             document.getElementById('eventNote').value = e['備註'] || '';
